@@ -5,7 +5,7 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const QuizSession = sequelize.define('QuizSession', {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },

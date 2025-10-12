@@ -5,7 +5,7 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const AuditLog = sequelize.define('AuditLog', {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },

@@ -5,12 +5,12 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const QuizResponse = sequelize.define('QuizResponse', {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },
         quiz_session_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             allowNull: false,
             references: {
                 model: 'quiz_sessions',
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         question_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             allowNull: false,
             references: {
                 model: 'questions',

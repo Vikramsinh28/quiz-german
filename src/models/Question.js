@@ -5,24 +5,22 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const Question = sequelize.define('Question', {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },
         question_text: {
-            type: DataTypes.TEXT,
+            type: DataTypes.JSONB,
             allowNull: false,
             validate: {
-                notEmpty: true,
-                len: [1, 1000]
+                notEmpty: true
             }
         },
         options: {
-            type: DataTypes.TEXT,
+            type: DataTypes.JSONB,
             allowNull: false,
             validate: {
-                notEmpty: true,
-                len: [1, 2000]
+                notEmpty: true
             }
         },
         correct_option: {
@@ -34,11 +32,8 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         explanation: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            validate: {
-                len: [0, 1000]
-            }
+            type: DataTypes.JSONB,
+            allowNull: true
         },
         topic: {
             type: DataTypes.STRING(100),
@@ -86,22 +81,46 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Question.prototype.getQuestionText = function () {
-        return this.question_text;
-    };
-
-    Question.prototype.getOptions = function () {
-        // Parse options from string (assuming comma-separated or JSON string)
-        try {
-            return JSON.parse(this.options);
-        } catch (error) {
-            // If not JSON, split by comma
-            return this.options.split(',').map(option => option.trim());
+    Question.prototype.getQuestionText = function (language = 'en') {
+        if (typeof this.question_text === 'string') {
+            return this.question_text;
         }
+        return this.question_text[language] || this.question_text.en || this.question_text;
     };
 
-    Question.prototype.getExplanation = function () {
-        return this.explanation;
+    Question.prototype.getOptions = function (language = 'en') {
+        if (typeof this.options === 'string') {
+            try {
+                return JSON.parse(this.options);
+            } catch (error) {
+                return this.options.split(',').map(option => option.trim());
+            }
+        }
+
+        // Handle JSONB options
+        if (Array.isArray(this.options)) {
+            return this.options.map(option => {
+                if (typeof option === 'string') return option;
+                return option[language] || option.en || option;
+            });
+        }
+
+        // Handle object with language keys
+        if (this.options[language]) {
+            return this.options[language];
+        }
+
+        return this.options.en || this.options;
+    };
+
+    Question.prototype.getExplanation = function (language = 'en') {
+        if (!this.explanation) return null;
+
+        if (typeof this.explanation === 'string') {
+            return this.explanation;
+        }
+
+        return this.explanation[language] || this.explanation.en || this.explanation;
     };
 
     Question.prototype.isCorrectAnswer = function (selectedOption) {

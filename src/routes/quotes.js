@@ -3,11 +3,50 @@ const {
     Quote
 } = require('../models');
 const {
-    sendLocalizedResponse,
-    isLanguageSupported
-} = require('../utils/i18n');
+    sendLocalizedResponse
+} = require('../utils/responseMessages');
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/v1/quotes/today:
+ *   get:
+ *     summary: Get today's quote
+ *     description: Get the quote scheduled for today (public endpoint)
+ *     tags: [Quotes]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for quote
+ *         example: en
+ *     responses:
+ *       200:
+ *         description: Quote retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful
+ *                 data:
+ *                   $ref: '#/components/schemas/Quote'
+ *       404:
+ *         description: No quote available for today
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get today's quote
 router.get('/today', async (req, res, next) => {
     try {
@@ -18,13 +57,6 @@ router.get('/today', async (req, res, next) => {
         // Use language from query, request, or default
         const quoteLanguage = language || req.userLanguage || 'en';
 
-        if (!isLanguageSupported(quoteLanguage)) {
-            return sendLocalizedResponse(res, 400, 'api.validation_error', {
-                field: 'language',
-                message: 'Unsupported language'
-            }, req.userLanguage);
-        }
-
         const quote = await Quote.getTodaysQuote(quoteLanguage);
 
         if (!quote) {
@@ -33,7 +65,7 @@ router.get('/today', async (req, res, next) => {
 
         const responseData = {
             id: quote.id,
-            text: quote.getText(),
+            text: quote.getText(quoteLanguage),
             language: quote.language,
             scheduled_date: quote.scheduled_date,
             is_active: quote.is_active
@@ -65,7 +97,7 @@ router.get('/random', async (req, res, next) => {
             success: true,
             data: {
                 id: quote.id,
-                text: quote.getText(),
+                text: quote.getText(language),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active
@@ -98,7 +130,7 @@ router.get('/:id', async (req, res, next) => {
             success: true,
             data: {
                 id: quote.id,
-                text: quote.getText(),
+                text: quote.getText(language),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active,
@@ -134,7 +166,7 @@ router.get('/', async (req, res, next) => {
 
         const formattedQuotes = quotes.rows.map(quote => ({
             id: quote.id,
-            text: quote.getText(),
+            text: quote.getText(language),
             language: quote.language,
             scheduled_date: quote.scheduled_date,
             is_active: quote.is_active,

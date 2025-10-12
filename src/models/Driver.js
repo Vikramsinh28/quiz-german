@@ -23,14 +23,14 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         total_quizzes: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             defaultValue: 0,
             validate: {
                 min: 0
             }
         },
         total_correct: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             defaultValue: 0,
             validate: {
                 min: 0

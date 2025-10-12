@@ -4,11 +4,86 @@ const {
     QuizResponse
 } = require('../models');
 const {
-    sendLocalizedResponse,
-    isLanguageSupported
-} = require('../utils/i18n');
+    sendLocalizedResponse
+} = require('../utils/responseMessages');
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/v1/questions/random:
+ *   get:
+ *     summary: Get random questions
+ *     description: Get random questions for quiz (public endpoint)
+ *     tags: [Questions]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: count
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of questions to return
+ *         example: 5
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for questions
+ *         example: en
+ *       - in: query
+ *         name: topic
+ *         schema:
+ *           type: string
+ *         description: Filter by topic
+ *         example: greetings
+ *     responses:
+ *       200:
+ *         description: Questions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           question_text:
+ *                             type: string
+ *                           options:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                           topic:
+ *                             type: string
+ *                           explanation:
+ *                             type: string
+ *                     count:
+ *                       type: integer
+ *                     language:
+ *                       type: string
+ *       404:
+ *         description: No questions available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get random questions (public endpoint)
 router.get('/random', async (req, res, next) => {
     try {
@@ -18,13 +93,6 @@ router.get('/random', async (req, res, next) => {
 
         // Use language from query, request, or default
         const questionLanguage = language || req.userLanguage || 'en';
-
-        if (!isLanguageSupported(questionLanguage)) {
-            return sendLocalizedResponse(res, 400, 'api.validation_error', {
-                field: 'language',
-                message: 'Unsupported language'
-            }, req.userLanguage);
-        }
 
         const questions = await Question.getRandomQuestions(
             parseInt(count),
@@ -39,10 +107,10 @@ router.get('/random', async (req, res, next) => {
         // Format questions for client (without correct answers)
         const formattedQuestions = questions.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(),
-            options: question.getOptions(),
+            question_text: question.getQuestionText(questionLanguage),
+            options: question.getOptions(questionLanguage),
             topic: question.topic,
-            explanation: question.getExplanation()
+            explanation: question.getExplanation(questionLanguage)
         }));
 
         const responseData = {
@@ -82,10 +150,10 @@ router.get('/:id', async (req, res, next) => {
             success: true,
             data: {
                 id: question.id,
-                question_text: question.getQuestionText(),
-                options: question.getOptions(),
+                question_text: question.getQuestionText(language),
+                options: question.getOptions(language),
                 topic: question.topic,
-                explanation: question.getExplanation(),
+                explanation: question.getExplanation(language),
                 is_active: question.is_active,
                 created_at: question.created_at,
                 stats: {
@@ -124,10 +192,10 @@ router.get('/topic/:topic', async (req, res, next) => {
 
         const formattedQuestions = questions.rows.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(),
-            options: question.getOptions(),
+            question_text: question.getQuestionText(language),
+            options: question.getOptions(language),
             topic: question.topic,
-            explanation: question.getExplanation()
+            explanation: question.getExplanation(language)
         }));
 
         res.json({

@@ -10,6 +10,67 @@ const {
 } = require('../utils/responseMessages');
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/v1/quiz/session/{driverId}:
+ *   get:
+ *     summary: Get today's quiz session
+ *     description: Get or create today's quiz session for a driver
+ *     tags: [Quiz]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *         example: 550e8400-e29b-41d4-a716-446655440001
+ *     responses:
+ *       200:
+ *         description: Session retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session:
+ *                       $ref: '#/components/schemas/QuizSession'
+ *                     responses:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           question_id:
+ *                             type: string
+ *                             format: uuid
+ *                           selected_option:
+ *                             type: integer
+ *                           correct:
+ *                             type: boolean
+ *                           answered_at:
+ *                             type: string
+ *                             format: date-time
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get today's quiz session for a driver
 router.get('/session/:driverId', async (req, res, next) => {
     try {
@@ -73,13 +134,6 @@ router.post('/start/:driverId', async (req, res, next) => {
         // Use language from request, driver preference, or detected language
         const quizLanguage = language || req.userLanguage || 'en';
 
-        if (!isLanguageSupported(quizLanguage)) {
-            return sendLocalizedResponse(res, 400, 'api.validation_error', {
-                field: 'language',
-                message: 'Unsupported language'
-            }, req.userLanguage);
-        }
-
         // Verify driver exists
         const driver = await Driver.findByPk(driverId);
         if (!driver) {
@@ -102,8 +156,8 @@ router.post('/start/:driverId', async (req, res, next) => {
         // Format questions for client (without correct answers)
         const formattedQuestions = questions.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(),
-            options: question.getOptions(),
+            question_text: question.getQuestionText(quizLanguage),
+            options: question.getOptions(quizLanguage),
             topic: question.topic
         }));
 
@@ -193,7 +247,7 @@ router.post('/answer', async (req, res, next) => {
             data: {
                 correct: isCorrect,
                 correct_option: question.correct_option,
-                explanation: question.getExplanation(),
+                explanation: question.getExplanation(session.driver.language),
                 session_stats: {
                     total_questions: session.total_questions,
                     total_correct: session.total_correct,

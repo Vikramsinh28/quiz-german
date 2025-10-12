@@ -5,16 +5,15 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const Quote = sequelize.define('Quote', {
         id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },
         text: {
-            type: DataTypes.TEXT,
+            type: DataTypes.JSONB,
             allowNull: false,
             validate: {
-                notEmpty: true,
-                len: [1, 1000]
+                notEmpty: true
             }
         },
         language: {
@@ -52,8 +51,11 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Quote.prototype.getText = function () {
-        return this.text;
+    Quote.prototype.getText = function (language = 'en') {
+        if (typeof this.text === 'string') {
+            return this.text;
+        }
+        return this.text[language] || this.text.en || this.text;
     };
 
     // Class methods
