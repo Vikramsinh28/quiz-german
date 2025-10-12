@@ -1,0 +1,295 @@
+const QuizService = require('../services/QuizService');
+const QuestionService = require('../services/QuestionService');
+const {
+    sendLocalizedResponse
+} = require('../utils/responseMessages');
+
+class QuizController {
+    /**
+     * Get quiz session for driver
+     */
+    static async getQuizSession(req, res, next) {
+        try {
+            const {
+                driverId
+            } = req.params;
+            const {
+                language = 'en'
+            } = req.query;
+
+            const quizLanguage = language || req.userLanguage || 'en';
+
+            // Check if driver can take quiz today
+            const canTakeQuiz = await QuizService.canTakeQuizToday(driverId);
+            if (!canTakeQuiz) {
+                return sendLocalizedResponse(res, 400, 'quiz.already_completed', null, req.userLanguage);
+            }
+
+            // Get or create today's session
+            let session = await QuizService.getTodaysSession(driverId);
+            if (!session) {
+                session = await QuizService.createTodaysSession(driverId);
+            }
+
+            // Get random questions
+            const questions = await QuestionService.getRandomQuestions(5, quizLanguage);
+
+            if (questions.length === 0) {
+                return sendLocalizedResponse(res, 404, 'quiz.no_questions', null, req.userLanguage);
+            }
+
+            // Format questions for client (without correct answers)
+            const formattedQuestions = questions.map(question => ({
+                id: question.id,
+                question_text: question.getQuestionText(quizLanguage),
+                options: question.getOptions(quizLanguage),
+                topic: question.topic
+            }));
+
+            const responseData = {
+                questions: formattedQuestions,
+                session_id: session.id,
+                language: quizLanguage
+            };
+
+            return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Start quiz session
+     */
+    static async startQuiz(req, res, next) {
+        try {
+            const {
+                driverId
+            } = req.params;
+            const {
+                language = 'en'
+            } = req.body;
+
+            const quizLanguage = language || req.userLanguage || 'en';
+
+            // Check if driver can take quiz today
+            const canTakeQuiz = await QuizService.canTakeQuizToday(driverId);
+            if (!canTakeQuiz) {
+                return sendLocalizedResponse(res, 400, 'quiz.already_completed', null, req.userLanguage);
+            }
+
+            // Get random questions
+            const questions = await QuestionService.getRandomQuestions(5, quizLanguage);
+
+            if (questions.length === 0) {
+                return sendLocalizedResponse(res, 404, 'quiz.no_questions', null, req.userLanguage);
+            }
+
+            // Start quiz session
+            const session = await QuizService.startQuiz(driverId, questions);
+
+            // Format questions for client (without correct answers)
+            const formattedQuestions = questions.map(question => ({
+                id: question.id,
+                question_text: question.getQuestionText(quizLanguage),
+                options: question.getOptions(quizLanguage),
+                topic: question.topic
+            }));
+
+            const responseData = {
+                session_id: session.id,
+                questions: formattedQuestions,
+                language: quizLanguage
+            };
+
+            return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Submit answer
+     */
+    static async submitAnswer(req, res, next) {
+        try {
+            const {
+                session_id,
+                question_id,
+                selected_option
+            } = req.body;
+
+            if (!session_id || question_id === undefined || selected_option === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Session ID, question ID, and selected option are required'
+                });
+            }
+
+            const result = await QuizService.submitAnswer(session_id, question_id, selected_option);
+
+            res.json({
+                success: true,
+                message: 'Answer submitted successfully',
+                data: result
+            });
+        } catch (error) {
+            if (error.message === 'Quiz session not found' || error.message === 'Question not found') {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            next(error);
+        }
+    }
+
+    /**
+     * Complete quiz
+     */
+    static async completeQuiz(req, res, next) {
+        try {
+            const {
+                sessionId
+            } = req.params;
+
+            const session = await QuizService.completeQuiz(sessionId);
+
+            res.json({
+                success: true,
+                message: 'Quiz completed successfully',
+                data: {
+                    session_id: session.id,
+                    total_questions: session.total_questions,
+                    total_correct: session.total_correct,
+                    score: session.calculateScore(),
+                    completed: session.completed
+                }
+            });
+        } catch (error) {
+            if (error.message === 'Quiz session not found') {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            next(error);
+        }
+    }
+
+    /**
+     * Get quiz history for driver
+     */
+    static async getQuizHistory(req, res, next) {
+        try {
+            const {
+                driverId
+            } = req.params;
+            const {
+                limit = 20,
+                    offset = 0
+            } = req.query;
+
+            const history = await QuizService.getQuizHistory(driverId, {
+                limit,
+                offset
+            });
+
+            const formattedHistory = history.rows.map(session => ({
+                id: session.id,
+                quiz_date: session.quiz_date,
+                total_questions: session.total_questions,
+                total_correct: session.total_correct,
+                score: session.calculateScore(),
+                completed: session.completed,
+                created_at: session.created_at
+            }));
+
+            res.json({
+                success: true,
+                data: {
+                    sessions: formattedHistory,
+                    total: history.count,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset)
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get quiz session details
+     */
+    static async getQuizSessionDetails(req, res, next) {
+        try {
+            const {
+                sessionId
+            } = req.params;
+
+            const session = await QuizService.getQuizSessionById(sessionId);
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Quiz session not found'
+                });
+            }
+
+            const responses = await QuizService.getQuizResponses(sessionId);
+
+            res.json({
+                success: true,
+                data: {
+                    session: {
+                        id: session.id,
+                        driver_id: session.driver_id,
+                        quiz_date: session.quiz_date,
+                        total_questions: session.total_questions,
+                        total_correct: session.total_correct,
+                        score: session.calculateScore(),
+                        completed: session.completed,
+                        created_at: session.created_at
+                    },
+                    responses: responses.map(response => ({
+                        id: response.id,
+                        question_id: response.question_id,
+                        selected_option: response.selected_option,
+                        correct: response.correct,
+                        answered_at: response.answered_at
+                    }))
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get driver statistics
+     */
+    static async getDriverStats(req, res, next) {
+        try {
+            const {
+                driverId
+            } = req.params;
+
+            const stats = await QuizService.getDriverStats(driverId);
+            if (!stats) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                data: stats
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+}
+
+module.exports = QuizController;

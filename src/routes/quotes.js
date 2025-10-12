@@ -1,18 +1,77 @@
 const express = require('express');
+const QuoteController = require('../controllers/QuoteController');
 const {
-    Quote
-} = require('../models');
-const {
-    sendLocalizedResponse
+    languageMiddleware
 } = require('../utils/responseMessages');
 const router = express.Router();
+
+// Apply language middleware
+router.use(languageMiddleware);
 
 /**
  * @swagger
  * /api/v1/quotes/today:
  *   get:
  *     summary: Get today's quote
- *     description: Get the quote scheduled for today (public endpoint)
+ *     description: Retrieve today's motivational quote
+ *     tags: [Quotes]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: lang
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for quote content
+ *     responses:
+ *       200:
+ *         description: Today's quote retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     text:
+ *                       type: string
+ *                       example: "Drive safely today and every day."
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     scheduled_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2024-01-01"
+ *                     is_active:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: No quote available for today
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/today', QuoteController.getTodaysQuote);
+
+/**
+ * @swagger
+ * /api/v1/quotes/random:
+ *   get:
+ *     summary: Get random quote
+ *     description: Retrieve a random motivational quote
  *     tags: [Quotes]
  *     security: []
  *     parameters:
@@ -22,8 +81,69 @@ const router = express.Router();
  *           type: string
  *           enum: [en, de]
  *           default: en
- *         description: Language for quote
- *         example: en
+ *         description: Language for quote content
+ *     responses:
+ *       200:
+ *         description: Random quote retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     text:
+ *                       type: string
+ *                       example: "Drive safely today and every day."
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     scheduled_date:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: null
+ *                     is_active:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: No quotes available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/random', QuoteController.getRandomQuote);
+
+/**
+ * @swagger
+ * /api/v1/quotes/{id}:
+ *   get:
+ *     summary: Get quote by ID
+ *     description: Retrieve a specific quote by ID
+ *     tags: [Quotes]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quote ID
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for quote content
  *     responses:
  *       200:
  *         description: Quote retrieved successfully
@@ -35,156 +155,121 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 message:
- *                   type: string
- *                   example: Operation successful
  *                 data:
- *                   $ref: '#/components/schemas/Quote'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     text:
+ *                       type: string
+ *                       example: "Drive safely today and every day."
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     scheduled_date:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: null
+ *                     is_active:
+ *                       type: boolean
+ *                       example: true
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
  *       404:
- *         description: No quote available for today
+ *         description: Quote not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// Get today's quote
-router.get('/today', async (req, res, next) => {
-    try {
-        const {
-            language
-        } = req.query;
+router.get('/:id', QuoteController.getQuoteById);
 
-        // Use language from query, request, or default
-        const quoteLanguage = language || req.userLanguage || 'en';
-
-        const quote = await Quote.getTodaysQuote(quoteLanguage);
-
-        if (!quote) {
-            return sendLocalizedResponse(res, 404, 'quote.no_quote_today', null, req.userLanguage);
-        }
-
-        const responseData = {
-            id: quote.id,
-            text: quote.getText(quoteLanguage),
-            language: quote.language,
-            scheduled_date: quote.scheduled_date,
-            is_active: quote.is_active
-        };
-
-        return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get random quote
-router.get('/random', async (req, res, next) => {
-    try {
-        const {
-            language = 'en'
-        } = req.query;
-
-        const quote = await Quote.getRandomQuote(language);
-
-        if (!quote) {
-            return res.status(404).json({
-                success: false,
-                message: 'No quotes available'
-            });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                id: quote.id,
-                text: quote.getText(language),
-                language: quote.language,
-                scheduled_date: quote.scheduled_date,
-                is_active: quote.is_active
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get quote by ID
-router.get('/:id', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const {
-            language = 'en'
-        } = req.query;
-
-        const quote = await Quote.findByPk(id);
-        if (!quote) {
-            return res.status(404).json({
-                success: false,
-                message: 'Quote not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                id: quote.id,
-                text: quote.getText(language),
-                language: quote.language,
-                scheduled_date: quote.scheduled_date,
-                is_active: quote.is_active,
-                created_at: quote.created_at,
-                updated_at: quote.updated_at
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get all quotes (with pagination)
-router.get('/', async (req, res, next) => {
-    try {
-        const {
-            language = 'en', limit = 20, offset = 0, active_only = true
-        } = req.query;
-
-        const whereClause = {};
-        if (active_only === 'true') {
-            whereClause.is_active = true;
-        }
-
-        const quotes = await Quote.findAndCountAll({
-            where: whereClause,
-            order: [
-                ['created_at', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset)
-        });
-
-        const formattedQuotes = quotes.rows.map(quote => ({
-            id: quote.id,
-            text: quote.getText(language),
-            language: quote.language,
-            scheduled_date: quote.scheduled_date,
-            is_active: quote.is_active,
-            created_at: quote.created_at
-        }));
-
-        res.json({
-            success: true,
-            data: {
-                quotes: formattedQuotes,
-                total: quotes.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/quotes:
+ *   get:
+ *     summary: Get all quotes
+ *     description: Retrieve all quotes with pagination
+ *     tags: [Quotes]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of quotes to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of quotes to skip
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for quote content
+ *     responses:
+ *       200:
+ *         description: Quotes retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     quotes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           text:
+ *                             type: string
+ *                             example: "Drive safely today and every day."
+ *                           language:
+ *                             type: string
+ *                             example: "en"
+ *                           scheduled_date:
+ *                             type: string
+ *                             format: date
+ *                             nullable: true
+ *                             example: null
+ *                           is_active:
+ *                             type: boolean
+ *                             example: true
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ */
+router.get('/', QuoteController.getAllQuotes);
 
 module.exports = router;

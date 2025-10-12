@@ -1,19 +1,19 @@
 const express = require('express');
+const QuestionController = require('../controllers/QuestionController');
 const {
-    Question,
-    QuizResponse
-} = require('../models');
-const {
-    sendLocalizedResponse
+    languageMiddleware
 } = require('../utils/responseMessages');
 const router = express.Router();
+
+// Apply language middleware
+router.use(languageMiddleware);
 
 /**
  * @swagger
  * /api/v1/questions/random:
  *   get:
  *     summary: Get random questions
- *     description: Get random questions for quiz (public endpoint)
+ *     description: Retrieve random questions for quiz
  *     tags: [Questions]
  *     security: []
  *     parameters:
@@ -22,22 +22,192 @@ const router = express.Router();
  *         schema:
  *           type: integer
  *           default: 5
- *         description: Number of questions to return
- *         example: 5
+ *           minimum: 1
+ *           maximum: 20
+ *         description: Number of random questions to return
  *       - in: query
  *         name: language
  *         schema:
  *           type: string
  *           enum: [en, de]
  *           default: en
- *         description: Language for questions
- *         example: en
+ *         description: Language for question content
  *       - in: query
  *         name: topic
  *         schema:
  *           type: string
  *         description: Filter by topic
- *         example: greetings
+ *     responses:
+ *       200:
+ *         description: Random questions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           question_text:
+ *                             type: string
+ *                             example: "What is the speed limit in school zones?"
+ *                           options:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["20 km/h", "30 km/h", "40 km/h", "50 km/h"]
+ *                           topic:
+ *                             type: string
+ *                             example: "Traffic Rules"
+ *                           explanation:
+ *                             type: string
+ *                             example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                     count:
+ *                       type: integer
+ *                       example: 5
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *       404:
+ *         description: No questions available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/random', QuestionController.getRandomQuestions);
+
+/**
+ * @swagger
+ * /api/v1/questions/{id}:
+ *   get:
+ *     summary: Get question by ID
+ *     description: Retrieve a specific question by ID
+ *     tags: [Questions]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Question ID
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for question content
+ *     responses:
+ *       200:
+ *         description: Question retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     question_text:
+ *                       type: string
+ *                       example: "What is the speed limit in school zones?"
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["20 km/h", "30 km/h", "40 km/h", "50 km/h"]
+ *                     topic:
+ *                       type: string
+ *                       example: "Traffic Rules"
+ *                     explanation:
+ *                       type: string
+ *                       example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                     is_active:
+ *                       type: boolean
+ *                       example: true
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total_responses:
+ *                           type: integer
+ *                           example: 150
+ *                         correct_responses:
+ *                           type: integer
+ *                           example: 120
+ *                         accuracy:
+ *                           type: integer
+ *                           example: 80
+ *       404:
+ *         description: Question not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', QuestionController.getQuestionById);
+
+/**
+ * @swagger
+ * /api/v1/questions/topic/{topic}:
+ *   get:
+ *     summary: Get questions by topic
+ *     description: Retrieve questions filtered by topic
+ *     tags: [Questions]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: topic
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Topic name
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of questions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of questions to skip
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for question content
  *     responses:
  *       200:
  *         description: Questions retrieved successfully
@@ -49,9 +219,6 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 message:
- *                   type: string
- *                   example: Operation successful
  *                 data:
  *                   type: object
  *                   properties:
@@ -61,233 +228,65 @@ const router = express.Router();
  *                         type: object
  *                         properties:
  *                           id:
- *                             type: string
- *                             format: uuid
+ *                             type: integer
+ *                             example: 1
  *                           question_text:
  *                             type: string
+ *                             example: "What is the speed limit in school zones?"
  *                           options:
  *                             type: array
  *                             items:
  *                               type: string
+ *                             example: ["20 km/h", "30 km/h", "40 km/h", "50 km/h"]
  *                           topic:
  *                             type: string
+ *                             example: "Traffic Rules"
  *                           explanation:
  *                             type: string
- *                     count:
+ *                             example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                     total:
  *                       type: integer
- *                     language:
+ *                       example: 50
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ *                     topic:
  *                       type: string
- *       404:
- *         description: No questions available
+ *                       example: "Traffic Rules"
+ */
+router.get('/topic/:topic', QuestionController.getQuestionsByTopic);
+
+/**
+ * @swagger
+ * /api/v1/questions/topics:
+ *   get:
+ *     summary: Get all topics
+ *     description: Retrieve a list of all available topics
+ *     tags: [Questions]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Topics retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     topics:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Traffic Rules", "Safety", "Driving Rules", "Traffic Signs"]
  */
-// Get random questions (public endpoint)
-router.get('/random', async (req, res, next) => {
-    try {
-        const {
-            count = 5, language, topic
-        } = req.query;
-
-        // Use language from query, request, or default
-        const questionLanguage = language || req.userLanguage || 'en';
-
-        const questions = await Question.getRandomQuestions(
-            parseInt(count),
-            questionLanguage,
-            topic
-        );
-
-        if (questions.length === 0) {
-            return sendLocalizedResponse(res, 404, 'quiz.no_questions', null, req.userLanguage);
-        }
-
-        // Format questions for client (without correct answers)
-        const formattedQuestions = questions.map(question => ({
-            id: question.id,
-            question_text: question.getQuestionText(questionLanguage),
-            options: question.getOptions(questionLanguage),
-            topic: question.topic,
-            explanation: question.getExplanation(questionLanguage)
-        }));
-
-        const responseData = {
-            questions: formattedQuestions,
-            count: questions.length,
-            language: questionLanguage
-        };
-
-        return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get question by ID (public endpoint)
-router.get('/:id', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const {
-            language = 'en'
-        } = req.query;
-
-        const question = await Question.findByPk(id);
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found'
-            });
-        }
-
-        // Get question statistics
-        const stats = await QuizResponse.getQuestionStats(id);
-
-        res.json({
-            success: true,
-            data: {
-                id: question.id,
-                question_text: question.getQuestionText(language),
-                options: question.getOptions(language),
-                topic: question.topic,
-                explanation: question.getExplanation(language),
-                is_active: question.is_active,
-                created_at: question.created_at,
-                stats: {
-                    total_responses: stats.total_responses,
-                    correct_responses: stats.correct_responses,
-                    accuracy: stats.accuracy
-                }
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get questions by topic
-router.get('/topic/:topic', async (req, res, next) => {
-    try {
-        const {
-            topic
-        } = req.params;
-        const {
-            language = 'en', limit = 10, offset = 0
-        } = req.query;
-
-        const questions = await Question.findAndCountAll({
-            where: {
-                topic: topic,
-                is_active: true
-            },
-            order: [
-                ['created_at', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset)
-        });
-
-        const formattedQuestions = questions.rows.map(question => ({
-            id: question.id,
-            question_text: question.getQuestionText(language),
-            options: question.getOptions(language),
-            topic: question.topic,
-            explanation: question.getExplanation(language)
-        }));
-
-        res.json({
-            success: true,
-            data: {
-                questions: formattedQuestions,
-                total: questions.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get all available topics
-router.get('/topics/list', async (req, res, next) => {
-    try {
-        const topics = await Question.findAll({
-            attributes: ['topic'],
-            where: {
-                topic: {
-                    [require('sequelize').Op.ne]: null
-                },
-                is_active: true
-            },
-            group: ['topic'],
-            order: [
-                ['topic', 'ASC']
-            ]
-        });
-
-        const topicList = topics.map(q => q.topic).filter(Boolean);
-
-        res.json({
-            success: true,
-            data: {
-                topics: topicList
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get question statistics
-router.get('/:id/stats', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-
-        const question = await Question.findByPk(id);
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found'
-            });
-        }
-
-        const stats = await QuizResponse.getQuestionStats(id);
-
-        // Get response breakdown by option
-        const optionStats = await QuizResponse.findAll({
-            where: {
-                question_id: id
-            },
-            attributes: [
-                'selected_option',
-                [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
-            ],
-            group: ['selected_option'],
-            raw: true
-        });
-
-        res.json({
-            success: true,
-            data: {
-                question_id: id,
-                total_responses: stats.total_responses,
-                correct_responses: stats.correct_responses,
-                accuracy: stats.accuracy,
-                option_breakdown: optionStats.map(stat => ({
-                    option: stat.selected_option,
-                    count: parseInt(stat.count)
-                }))
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+router.get('/topics', QuestionController.getAllTopics);
 
 module.exports = router;

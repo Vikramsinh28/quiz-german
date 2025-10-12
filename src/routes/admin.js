@@ -1,23 +1,21 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const {
-    Admin,
-    Question,
-    Quote,
-    Driver,
-    QuizSession,
-    AuditLog
-} = require('../models');
+const AdminController = require('../controllers/AdminController');
+const QuestionController = require('../controllers/QuestionController');
+const QuoteController = require('../controllers/QuoteController');
+const DriverController = require('../controllers/DriverController');
 const {
     authenticateToken,
     requireRole,
     logAdminAction,
     loginRateLimit,
-    adminRateLimit,
-    generateToken,
-    validatePermission
+    adminRateLimit
 } = require('../middlewares/auth');
 const router = express.Router();
+
+// Apply rate limiting
+router.use(adminRateLimit);
+
+// ==================== AUTHENTICATION ====================
 
 /**
  * @swagger
@@ -43,213 +41,70 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/LoginResponse'
- *             example:
- *               success: true
- *               message: Login successful
- *               data:
- *                 token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *                 admin:
- *                   id: 550e8400-e29b-41d4-a716-446655440001
- *                   username: admin
- *                   role: admin
- *                   created_at: 2024-01-01T00:00:00.000Z
- *       401:
- *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               success: false
- *               message: Invalid credentials
- *       429:
- *         description: Too many login attempts
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-// Admin login with rate limiting
-router.post('/login', loginRateLimit, async (req, res, next) => {
-    try {
-        const {
-            username,
-            password
-        } = req.body;
-
-        if (!username || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Username and password are required'
-            });
-        }
-
-        const admin = await Admin.authenticate(username, password);
-        if (!admin) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
-
-        // Generate JWT token using the middleware function
-        const token = generateToken(admin);
-
-        // Log login action
-        await AuditLog.logAdminAction(admin.username, 'LOGIN', {
-            ip: req.ip,
-            userAgent: req.get('User-Agent')
-        });
-
-        res.json({
-            success: true,
-            message: 'Login successful',
-            data: {
-                token,
-                admin: {
-                    id: admin.id,
-                    username: admin.username,
-                    role: admin.role,
-                    created_at: admin.created_at
-                }
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+router.post('/login', loginRateLimit, AdminController.login);
 
 /**
  * @swagger
  * /api/v1/admin/logout:
  *   post:
  *     summary: Admin logout
- *     description: Logout admin user (client-side token removal)
+ *     description: Logout admin user
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successful
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Success'
- *             example:
- *               success: true
- *               message: Logout successful
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-// Admin logout (client-side token removal)
-router.post('/logout', authenticateToken, logAdminAction('LOGOUT'), (req, res) => {
-    res.json({
-        success: true,
-        message: 'Logout successful'
-    });
-});
+router.post('/logout', authenticateToken, AdminController.logout);
 
-// Verify token endpoint
-router.get('/verify', authenticateToken, (req, res) => {
-    res.json({
-        success: true,
-        message: 'Token is valid',
-        data: {
-            admin: {
-                id: req.admin.id,
-                username: req.admin.username,
-                role: req.admin.role,
-                created_at: req.admin.created_at
-            }
-        }
-    });
-});
+/**
+ * @swagger
+ * /api/v1/admin/verify:
+ *   get:
+ *     summary: Verify token
+ *     description: Verify if the provided JWT token is valid
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ */
+router.get('/verify', authenticateToken, AdminController.verifyToken);
 
-// Refresh token endpoint
-router.post('/refresh', authenticateToken, async (req, res, next) => {
-    try {
-        // Generate new token
-        const newToken = generateToken(req.admin);
+/**
+ * @swagger
+ * /api/v1/admin/refresh:
+ *   post:
+ *     summary: Refresh token
+ *     description: Get a new JWT token
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ */
+router.post('/refresh', authenticateToken, AdminController.refreshToken);
 
-        // Log token refresh
-        await AuditLog.logAdminAction(req.admin.username, 'REFRESH_TOKEN', {
-            ip: req.ip,
-            userAgent: req.get('User-Agent')
-        });
-
-        res.json({
-            success: true,
-            message: 'Token refreshed successfully',
-            data: {
-                token: newToken,
-                admin: {
-                    id: req.admin.id,
-                    username: req.admin.username,
-                    role: req.admin.role,
-                    created_at: req.admin.created_at
-                }
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Apply rate limiting to all admin routes
-router.use(adminRateLimit);
+// ==================== ADMIN MANAGEMENT ====================
 
 /**
  * @swagger
  * /api/v1/admin/profile:
  *   get:
  *     summary: Get admin profile
- *     description: Get current authenticated admin profile information
+ *     description: Get current admin user profile
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Profile retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/Admin'
- *             example:
- *               success: true
- *               data:
- *                 id: 550e8400-e29b-41d4-a716-446655440001
- *                 username: admin
- *                 role: admin
- *                 created_at: 2024-01-01T00:00:00.000Z
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-// Get admin profile
-router.get('/profile', authenticateToken, (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            id: req.admin.id,
-            username: req.admin.username,
-            role: req.admin.role,
-            created_at: req.admin.created_at
-        }
-    });
-});
+router.get('/profile', authenticateToken, AdminController.getProfile);
 
 /**
  * @swagger
@@ -283,542 +138,634 @@ router.get('/profile', authenticateToken, (req, res) => {
  *     responses:
  *       201:
  *         description: Admin created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Admin created successfully
- *                 data:
- *                   $ref: '#/components/schemas/Admin'
- *       400:
- *         description: Bad request
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Forbidden - Admin role required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-// Create new admin (only super admins can create other admins)
-router.post('/create', authenticateToken, requireRole(['admin']), logAdminAction('CREATE_ADMIN'), async (req, res, next) => {
-    try {
-        const {
-            username,
-            password,
-            role = 'editor'
-        } = req.body;
+router.post('/create', authenticateToken, requireRole(['admin']), logAdminAction('CREATE_ADMIN'), AdminController.createAdmin);
 
-        if (!username || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Username and password are required'
-            });
-        }
+/**
+ * @swagger
+ * /api/v1/admin/change-password:
+ *   patch:
+ *     summary: Change admin password
+ *     description: Change current admin password
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: oldpass123
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: newpass123
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+router.patch('/change-password', authenticateToken, logAdminAction('CHANGE_PASSWORD'), AdminController.changePassword);
 
-        // Validate role
-        const validRoles = ['admin', 'editor', 'viewer'];
-        if (!validRoles.includes(role)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid role. Must be one of: admin, editor, viewer'
-            });
-        }
+/**
+ * @swagger
+ * /api/v1/admin/dashboard:
+ *   get:
+ *     summary: Get admin dashboard statistics
+ *     description: Retrieve dashboard statistics including question counts, user stats, and recent activity
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics retrieved successfully
+ */
+router.get('/dashboard', authenticateToken, requireRole(['admin', 'editor', 'viewer']), AdminController.getDashboard);
 
-        // Check if username already exists
-        const existingAdmin = await Admin.findOne({
-            where: {
-                username
-            }
-        });
-
-        if (existingAdmin) {
-            return res.status(400).json({
-                success: false,
-                message: 'Username already exists'
-            });
-        }
-
-        // Create the admin
-        const newAdmin = await Admin.createAdmin(username, password, role);
-
-        res.status(201).json({
-            success: true,
-            message: 'Admin created successfully',
-            data: {
-                id: newAdmin.id,
-                username: newAdmin.username,
-                role: newAdmin.role,
-                created_at: newAdmin.created_at
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Change admin password
-router.patch('/change-password', authenticateToken, async (req, res, next) => {
-    try {
-        const {
-            current_password,
-            new_password
-        } = req.body;
-
-        if (!current_password || !new_password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Current password and new password are required'
-            });
-        }
-
-        // Verify current password
-        const isValid = await req.admin.validatePassword(current_password);
-        if (!isValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
-            });
-        }
-
-        // Update password
-        await Admin.updatePassword(req.admin.id, new_password);
-
-        // Log password change
-        await AuditLog.logAdminAction(req.admin.username, 'CHANGE_PASSWORD');
-
-        res.json({
-            success: true,
-            message: 'Password changed successfully'
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/admin/audit-logs:
+ *   get:
+ *     summary: Get audit logs
+ *     description: Retrieve audit logs with filtering options
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of logs to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of logs to skip
+ *       - in: query
+ *         name: actor
+ *         schema:
+ *           type: string
+ *         description: Filter by actor
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by action
+ *     responses:
+ *       200:
+ *         description: Audit logs retrieved successfully
+ */
+router.get('/audit-logs', authenticateToken, requireRole(['admin']), AdminController.getAuditLogs);
 
 // ==================== QUESTION MANAGEMENT ====================
 
-// Get all questions (admin)
-router.get('/questions', authenticateToken, requireRole(['admin', 'editor', 'viewer']), async (req, res, next) => {
-    try {
-        const {
-            limit = 20, offset = 0, topic, language, active_only = true
-        } = req.query;
+/**
+ * @swagger
+ * /api/v1/admin/questions:
+ *   get:
+ *     summary: Get all questions (admin)
+ *     description: Retrieve all questions with filtering options
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of questions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of questions to skip
+ *       - in: query
+ *         name: topic
+ *         schema:
+ *           type: string
+ *         description: Filter by topic
+ *       - in: query
+ *         name: active_only
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Show only active questions
+ *     responses:
+ *       200:
+ *         description: Questions retrieved successfully
+ */
+router.get('/questions', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuestionController.getAllQuestions);
 
-        const whereClause = {};
-        if (active_only === 'true') {
-            whereClause.is_active = true;
-        }
-        if (topic) {
-            whereClause.topic = topic;
-        }
-        if (language) {
-            whereClause.language = language;
-        }
+/**
+ * @swagger
+ * /api/v1/admin/questions:
+ *   post:
+ *     summary: Create new question
+ *     description: Create a new question with multilingual support
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question_text, options, correct_option]
+ *             properties:
+ *               question_text:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                     example: "What is the speed limit in residential areas?"
+ *                   de:
+ *                     type: string
+ *                     example: "Wie hoch ist die Geschwindigkeitsbegrenzung in Wohngebieten?"
+ *               options:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
+ *                   de:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
+ *               correct_option:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 3
+ *                 example: 0
+ *               explanation:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                     example: "The speed limit is 30 km/h in residential areas."
+ *                   de:
+ *                     type: string
+ *                     example: "Die Geschwindigkeitsbegrenzung beträgt 30 km/h in Wohngebieten."
+ *               topic:
+ *                 type: string
+ *                 example: "Traffic Rules"
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 default: en
+ *                 example: en
+ *     responses:
+ *       201:
+ *         description: Question created successfully
+ */
+router.post('/questions', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUESTION'), QuestionController.createQuestion);
 
-        const questions = await Question.findAndCountAll({
-            where: whereClause,
-            order: [
-                ['created_at', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            include: [{
-                model: Admin,
-                as: 'creator',
-                attributes: ['id', 'username']
-            }]
-        });
+/**
+ * @swagger
+ * /api/v1/admin/questions/{id}:
+ *   get:
+ *     summary: Get question by ID (admin)
+ *     description: Retrieve a specific question with full details
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Question ID
+ *     responses:
+ *       200:
+ *         description: Question retrieved successfully
+ */
+router.get('/questions/:id', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuestionController.getQuestionByIdAdmin);
 
-        res.json({
-            success: true,
-            data: {
-                questions: questions.rows,
-                total: questions.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/admin/questions/{id}:
+ *   put:
+ *     summary: Update question
+ *     description: Update an existing question
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Question ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               question_text:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   de:
+ *                     type: string
+ *               options:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   de:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *               correct_option:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 3
+ *               explanation:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   de:
+ *                     type: string
+ *               topic:
+ *                 type: string
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Question updated successfully
+ */
+router.put('/questions/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUESTION'), QuestionController.updateQuestion);
 
-// Create new question
-router.post('/questions', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUESTION'), async (req, res, next) => {
-    try {
-        const {
-            question_text,
-            options,
-            correct_option,
-            explanation,
-            topic,
-            language = 'en'
-        } = req.body;
-
-        if (!question_text || !options || correct_option === undefined) {
-            return res.status(400).json({
-                success: false,
-                message: 'Question text, options, and correct option are required'
-            });
-        }
-
-        const question = await Question.create({
-            question_text,
-            options,
-            correct_option,
-            explanation,
-            topic,
-            language,
-            created_by: req.admin.id,
-            is_active: true
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Question created successfully',
-            data: question
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Update question
-router.put('/questions/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUESTION'), async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const updateData = req.body;
-
-        const question = await Question.findByPk(id);
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found'
-            });
-        }
-
-        await question.update(updateData);
-
-        res.json({
-            success: true,
-            message: 'Question updated successfully',
-            data: question
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Delete question (soft delete)
-router.delete('/questions/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('DELETE_QUESTION'), async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-
-        const question = await Question.findByPk(id);
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found'
-            });
-        }
-
-        await question.update({
-            is_active: false
-        });
-
-        res.json({
-            success: true,
-            message: 'Question deactivated successfully'
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
+/**
+ * @swagger
+ * /api/v1/admin/questions/{id}:
+ *   delete:
+ *     summary: Delete question (soft delete)
+ *     description: Deactivate a question by setting is_active to false
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Question ID
+ *     responses:
+ *       200:
+ *         description: Question deactivated successfully
+ */
+router.delete('/questions/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('DELETE_QUESTION'), QuestionController.deleteQuestion);
 // ==================== QUOTE MANAGEMENT ====================
 
-// Get all quotes (admin)
-router.get('/quotes', authenticateToken, requireRole(['admin', 'editor', 'viewer']), async (req, res, next) => {
-    try {
-        const {
-            limit = 20, offset = 0, language, active_only = true
-        } = req.query;
+/**
+ * @swagger
+ * /api/v1/admin/quotes:
+ *   get:
+ *     summary: Get all quotes (admin)
+ *     description: Retrieve all quotes with filtering options
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of quotes to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of quotes to skip
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *         description: Filter by language
+ *       - in: query
+ *         name: active_only
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Show only active quotes
+ *     responses:
+ *       200:
+ *         description: Quotes retrieved successfully
+ */
+router.get('/quotes', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuoteController.getAllQuotesAdmin);
 
-        const whereClause = {};
-        if (active_only === 'true') {
-            whereClause.is_active = true;
-        }
-        if (language) {
-            whereClause.language = language;
-        }
+/**
+ * @swagger
+ * /api/v1/admin/quotes:
+ *   post:
+ *     summary: Create new quote
+ *     description: Create a new quote with multilingual support
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [text]
+ *             properties:
+ *               text:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                     example: "Drive safely today and every day."
+ *                   de:
+ *                     type: string
+ *                     example: "Fahren Sie heute und jeden Tag sicher."
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 default: en
+ *                 example: en
+ *               scheduled_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *     responses:
+ *       201:
+ *         description: Quote created successfully
+ */
+router.post('/quotes', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUOTE'), QuoteController.createQuote);
 
-        const quotes = await Quote.findAndCountAll({
-            where: whereClause,
-            order: [
-                ['created_at', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset)
-        });
+/**
+ * @swagger
+ * /api/v1/admin/quotes/{id}:
+ *   put:
+ *     summary: Update quote
+ *     description: Update an existing quote
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quote ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text:
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   de:
+ *                     type: string
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *               scheduled_date:
+ *                 type: string
+ *                 format: date
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Quote updated successfully
+ */
+router.put('/quotes/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUOTE'), QuoteController.updateQuote);
 
-        res.json({
-            success: true,
-            data: {
-                quotes: quotes.rows,
-                total: quotes.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/admin/quotes/{id}:
+ *   delete:
+ *     summary: Delete quote (soft delete)
+ *     description: Deactivate a quote by setting is_active to false
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quote ID
+ *     responses:
+ *       200:
+ *         description: Quote deactivated successfully
+ */
+router.delete('/quotes/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('DELETE_QUOTE'), QuoteController.deleteQuote);
 
-// Create new quote
-router.post('/quotes', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUOTE'), async (req, res, next) => {
-    try {
-        const {
-            text,
-            language = 'en',
-            scheduled_date
-        } = req.body;
+/**
+ * @swagger
+ * /api/v1/admin/quotes/{id}/schedule:
+ *   patch:
+ *     summary: Schedule quote
+ *     description: Schedule a quote for a specific date
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quote ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [scheduled_date]
+ *             properties:
+ *               scheduled_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *     responses:
+ *       200:
+ *         description: Quote scheduled successfully
+ */
+router.patch('/quotes/:id/schedule', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('SCHEDULE_QUOTE'), QuoteController.scheduleQuote);
 
-        if (!text) {
-            return res.status(400).json({
-                success: false,
-                message: 'Quote text is required'
-            });
-        }
+// ==================== DRIVER MANAGEMENT ====================
 
-        const quote = await Quote.create({
-            text,
-            language,
-            scheduled_date,
-            is_active: true
-        });
+/**
+ * @swagger
+ * /api/v1/admin/drivers:
+ *   get:
+ *     summary: Get all drivers (admin)
+ *     description: Retrieve all drivers with filtering options
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of drivers to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of drivers to skip
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *         description: Filter by language
+ *       - in: query
+ *         name: active_today
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Show only drivers active today
+ *     responses:
+ *       200:
+ *         description: Drivers retrieved successfully
+ */
+router.get('/drivers', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getAllDrivers);
 
-        res.status(201).json({
-            success: true,
-            message: 'Quote created successfully',
-            data: quote
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/admin/drivers/{id}:
+ *   get:
+ *     summary: Get driver by ID (admin)
+ *     description: Retrieve a specific driver with full details
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver retrieved successfully
+ */
+router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverById);
 
-// Update quote
-router.put('/quotes/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUOTE'), async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const updateData = req.body;
+/**
+ * @swagger
+ * /api/v1/admin/drivers/{id}/stats:
+ *   get:
+ *     summary: Get driver statistics
+ *     description: Retrieve detailed statistics for a specific driver
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver statistics retrieved successfully
+ */
+router.get('/drivers/:id/stats', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverStats);
 
-        const quote = await Quote.findByPk(id);
-        if (!quote) {
-            return res.status(404).json({
-                success: false,
-                message: 'Quote not found'
-            });
-        }
+/**
+ * @swagger
+ * /api/v1/admin/drivers/top:
+ *   get:
+ *     summary: Get top performing drivers
+ *     description: Retrieve top performing drivers based on accuracy
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of top drivers to return
+ *       - in: query
+ *         name: min_quizzes
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Minimum number of quizzes required
+ *     responses:
+ *       200:
+ *         description: Top drivers retrieved successfully
+ */
+router.get('/drivers/top', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getTopDrivers);
 
-        await quote.update(updateData);
-
-        res.json({
-            success: true,
-            message: 'Quote updated successfully',
-            data: quote
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Schedule quote for specific date
-router.patch('/quotes/:id/schedule', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('SCHEDULE_QUOTE'), async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const {
-            scheduled_date
-        } = req.body;
-
-        if (!scheduled_date) {
-            return res.status(400).json({
-                success: false,
-                message: 'Scheduled date is required'
-            });
-        }
-
-        const quote = await Quote.scheduleQuote(id, scheduled_date);
-        if (!quote) {
-            return res.status(404).json({
-                success: false,
-                message: 'Quote not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Quote scheduled successfully',
-            data: quote
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// ==================== DASHBOARD STATS ====================
-
-// Get dashboard statistics
-router.get('/dashboard', authenticateToken, requireRole(['admin', 'editor', 'viewer']), async (req, res, next) => {
-    try {
-        const {
-            period = '30'
-        } = req.query; // days
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(period));
-
-        // Get basic counts
-        const totalDrivers = await Driver.count();
-        const totalQuestions = await Question.count({
-            where: {
-                is_active: true
-            }
-        });
-        const totalQuotes = await Quote.count({
-            where: {
-                is_active: true
-            }
-        });
-        const totalSessions = await QuizSession.count({
-            where: {
-                completed: true
-            }
-        });
-
-        // Get recent activity
-        const recentSessions = await QuizSession.count({
-            where: {
-                completed: true,
-                created_at: {
-                    [require('sequelize').Op.gte]: startDate
-                }
-            }
-        });
-
-        // Get average scores
-        const avgScoreResult = await QuizSession.findOne({
-            where: {
-                completed: true
-            },
-            attributes: [
-                [require('sequelize').fn('AVG', require('sequelize').literal('(total_correct::float / total_questions * 100)')), 'avg_score']
-            ],
-            raw: true
-        });
-
-        // Get top topics
-        const topTopics = await Question.findAll({
-            attributes: [
-                'topic',
-                [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
-            ],
-            where: {
-                is_active: true,
-                topic: {
-                    [require('sequelize').Op.ne]: null
-                }
-            },
-            group: ['topic'],
-            order: [
-                [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'DESC']
-            ],
-            limit: 5,
-            raw: true
-        });
-
-        res.json({
-            success: true,
-            data: {
-                overview: {
-                    total_drivers: totalDrivers,
-                    total_questions: totalQuestions,
-                    total_quotes: totalQuotes,
-                    total_sessions: totalSessions,
-                    recent_sessions: recentSessions,
-                    average_score: avgScoreResult ? Math.round(avgScoreResult.avg_score) : 0
-                },
-                top_topics: topTopics.map(topic => ({
-                    topic: topic.topic,
-                    count: parseInt(topic.count)
-                }))
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get audit logs
-router.get('/audit-logs', authenticateToken, requireRole(['admin']), async (req, res, next) => {
-    try {
-        const {
-            limit = 50, offset = 0, actor, action
-        } = req.query;
-
-        const whereClause = {};
-        if (actor) {
-            whereClause.actor = actor;
-        }
-        if (action) {
-            whereClause.action = action;
-        }
-
-        const logs = await AuditLog.findAndCountAll({
-            where: whereClause,
-            order: [
-                ['created_at', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset)
-        });
-
-        res.json({
-            success: true,
-            data: {
-                logs: logs.rows,
-                total: logs.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/admin/drivers/active-today:
+ *   get:
+ *     summary: Get active drivers today
+ *     description: Retrieve drivers who took a quiz today
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of drivers to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of drivers to skip
+ *     responses:
+ *       200:
+ *         description: Active drivers retrieved successfully
+ */
+router.get('/drivers/active-today', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getActiveDriversToday);
 
 module.exports = router;

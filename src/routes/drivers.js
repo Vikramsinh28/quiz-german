@@ -1,190 +1,457 @@
 const express = require('express');
-const {
-    Driver,
-    QuizSession
-} = require('../models');
+const DriverController = require('../controllers/DriverController');
 const router = express.Router();
 
-// Create or get driver by device token
-router.post('/register', async (req, res, next) => {
-    try {
-        const {
-            device_token,
-            language = 'en'
-        } = req.body;
+/**
+ * @swagger
+ * /api/v1/drivers:
+ *   post:
+ *     summary: Create a new driver
+ *     description: Create a new driver account
+ *     tags: [Drivers]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 default: en
+ *                 example: en
+ *               device_token:
+ *                 type: string
+ *                 example: "device_token_123"
+ *     responses:
+ *       201:
+ *         description: Driver created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Driver created successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     device_token:
+ *                       type: string
+ *                       example: "device_token_123"
+ *                     total_quizzes:
+ *                       type: integer
+ *                       example: 0
+ *                     total_correct:
+ *                       type: integer
+ *                       example: 0
+ *                     streak:
+ *                       type: integer
+ *                       example: 0
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/', DriverController.createDriver);
 
-        if (!device_token) {
-            return res.status(400).json({
-                success: false,
-                message: 'Device token is required'
-            });
-        }
+/**
+ * @swagger
+ * /api/v1/drivers/{id}:
+ *   get:
+ *     summary: Get driver by ID
+ *     description: Retrieve a specific driver by ID
+ *     tags: [Drivers]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     device_token:
+ *                       type: string
+ *                       example: "device_token_123"
+ *                     total_quizzes:
+ *                       type: integer
+ *                       example: 10
+ *                     total_correct:
+ *                       type: integer
+ *                       example: 45
+ *                     streak:
+ *                       type: integer
+ *                       example: 5
+ *                     last_quiz_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2024-01-01"
+ *                     accuracy:
+ *                       type: number
+ *                       format: float
+ *                       example: 90.0
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', DriverController.getDriverById);
 
-        // Check if driver already exists
-        let driver = await Driver.findOne({
-            where: {
-                device_token
-            }
-        });
+/**
+ * @swagger
+ * /api/v1/drivers/{id}:
+ *   put:
+ *     summary: Update driver information
+ *     description: Update driver information
+ *     tags: [Drivers]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 example: de
+ *               device_token:
+ *                 type: string
+ *                 example: "new_device_token_456"
+ *     responses:
+ *       200:
+ *         description: Driver updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Driver updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     language:
+ *                       type: string
+ *                       example: "de"
+ *                     device_token:
+ *                       type: string
+ *                       example: "new_device_token_456"
+ *                     total_quizzes:
+ *                       type: integer
+ *                       example: 10
+ *                     total_correct:
+ *                       type: integer
+ *                       example: 45
+ *                     streak:
+ *                       type: integer
+ *                       example: 5
+ *                     last_quiz_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2024-01-01"
+ *                     accuracy:
+ *                       type: number
+ *                       format: float
+ *                       example: 90.0
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.put('/:id', DriverController.updateDriver);
 
-        if (!driver) {
-            // Create new driver
-            driver = await Driver.create({
-                device_token,
-                language
-            });
-        } else {
-            // Update language if provided
-            if (language !== driver.language) {
-                driver.language = language;
-                await driver.save();
-            }
-        }
+/**
+ * @swagger
+ * /api/v1/drivers/{id}/language:
+ *   patch:
+ *     summary: Update driver language
+ *     description: Update driver language preference
+ *     tags: [Drivers]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [language]
+ *             properties:
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 example: de
+ *     responses:
+ *       200:
+ *         description: Driver language updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Driver language updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     language:
+ *                       type: string
+ *                       example: "de"
+ *       400:
+ *         description: Invalid language
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch('/:id/language', DriverController.updateDriverLanguage);
 
-        res.status(201).json({
-            success: true,
-            message: 'Driver registered successfully',
-            data: {
-                id: driver.id,
-                language: driver.language,
-                total_quizzes: driver.total_quizzes,
-                total_correct: driver.total_correct,
-                streak: driver.streak,
-                last_quiz_date: driver.last_quiz_date,
-                accuracy: driver.calculateAccuracy()
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/drivers/{id}/device-token:
+ *   patch:
+ *     summary: Update driver device token
+ *     description: Update driver device token for push notifications
+ *     tags: [Drivers]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [device_token]
+ *             properties:
+ *               device_token:
+ *                 type: string
+ *                 example: "new_device_token_456"
+ *     responses:
+ *       200:
+ *         description: Device token updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Device token updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     device_token:
+ *                       type: string
+ *                       example: "new_device_token_456"
+ *       400:
+ *         description: Device token is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch('/:id/device-token', DriverController.updateDeviceToken);
 
-// Get driver profile
-router.get('/:id', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-
-        const driver = await Driver.findByPk(id);
-        if (!driver) {
-            return res.status(404).json({
-                success: false,
-                message: 'Driver not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                id: driver.id,
-                language: driver.language,
-                total_quizzes: driver.total_quizzes,
-                total_correct: driver.total_correct,
-                streak: driver.streak,
-                last_quiz_date: driver.last_quiz_date,
-                accuracy: driver.calculateAccuracy(),
-                created_at: driver.created_at
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get driver statistics
-router.get('/:id/stats', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-
-        const driver = await Driver.findByPk(id, {
-            include: [{
-                model: QuizSession,
-                as: 'quizSessions',
-                where: {
-                    completed: true
-                },
-                required: false
-            }]
-        });
-
-        if (!driver) {
-            return res.status(404).json({
-                success: false,
-                message: 'Driver not found'
-            });
-        }
-
-        // Calculate additional statistics
-        const completedSessions = driver.quizSessions || [];
-        const totalSessions = completedSessions.length;
-        const averageScore = totalSessions > 0 ?
-            Math.round(completedSessions.reduce((sum, session) => sum + session.calculateScore(), 0) / totalSessions) :
-            0;
-
-        const bestScore = totalSessions > 0 ?
-            Math.max(...completedSessions.map(session => session.calculateScore())) :
-            0;
-
-        res.json({
-            success: true,
-            data: {
-                total_quizzes: driver.total_quizzes,
-                total_correct: driver.total_correct,
-                streak: driver.streak,
-                accuracy: driver.calculateAccuracy(),
-                average_score: averageScore,
-                best_score: bestScore,
-                total_sessions: totalSessions,
-                last_quiz_date: driver.last_quiz_date
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Update driver language
-router.patch('/:id/language', async (req, res, next) => {
-    try {
-        const {
-            id
-        } = req.params;
-        const {
-            language
-        } = req.body;
-
-        if (!language) {
-            return res.status(400).json({
-                success: false,
-                message: 'Language is required'
-            });
-        }
-
-        const driver = await Driver.findByPk(id);
-        if (!driver) {
-            return res.status(404).json({
-                success: false,
-                message: 'Driver not found'
-            });
-        }
-
-        driver.language = language;
-        await driver.save();
-
-        res.json({
-            success: true,
-            message: 'Language updated successfully',
-            data: {
-                id: driver.id,
-                language: driver.language
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+/**
+ * @swagger
+ * /api/v1/drivers/{id}/stats:
+ *   get:
+ *     summary: Get driver statistics
+ *     description: Retrieve detailed statistics for a driver
+ *     tags: [Drivers]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     driver:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440000"
+ *                         language:
+ *                           type: string
+ *                           example: "en"
+ *                         total_quizzes:
+ *                           type: integer
+ *                           example: 10
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 45
+ *                         streak:
+ *                           type: integer
+ *                           example: 5
+ *                         last_quiz_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2024-01-01"
+ *                         accuracy:
+ *                           type: number
+ *                           format: float
+ *                           example: 90.0
+ *                     sessions:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 10
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 45
+ *                         total_questions:
+ *                           type: integer
+ *                           example: 50
+ *                         overall_accuracy:
+ *                           type: integer
+ *                           example: 90
+ *       404:
+ *         description: Driver not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id/stats', DriverController.getDriverStats);
 
 module.exports = router;

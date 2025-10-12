@@ -1,20 +1,18 @@
 const express = require('express');
+const QuizController = require('../controllers/QuizController');
 const {
-    Driver,
-    QuizSession,
-    Question,
-    QuizResponse
-} = require('../models');
-const {
-    sendLocalizedResponse
+    languageMiddleware
 } = require('../utils/responseMessages');
 const router = express.Router();
+
+// Apply language middleware
+router.use(languageMiddleware);
 
 /**
  * @swagger
  * /api/v1/quiz/session/{driverId}:
  *   get:
- *     summary: Get today's quiz session
+ *     summary: Get quiz session for driver
  *     description: Get or create today's quiz session for a driver
  *     tags: [Quiz]
  *     security: []
@@ -26,10 +24,16 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Driver ID
- *         example: 550e8400-e29b-41d4-a716-446655440001
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de]
+ *           default: en
+ *         description: Language for quiz content
  *     responses:
  *       200:
- *         description: Session retrieved successfully
+ *         description: Quiz session retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -40,30 +44,506 @@ const router = express.Router();
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Operation successful
+ *                   example: Operation successful.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           question_text:
+ *                             type: string
+ *                             example: "What is the speed limit in school zones?"
+ *                           options:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["20 km/h", "30 km/h", "40 km/h", "50 km/h"]
+ *                           topic:
+ *                             type: string
+ *                             example: "Traffic Rules"
+ *                     session_id:
+ *                       type: integer
+ *                       example: 1
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *       400:
+ *         description: Quiz already completed today
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: No questions available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/session/:driverId', QuizController.getQuizSession);
+
+/**
+ * @swagger
+ * /api/v1/quiz/start:
+ *   post:
+ *     summary: Start quiz session
+ *     description: Start a new quiz session for a driver
+ *     tags: [Quiz]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [driverId]
+ *             properties:
+ *               driverId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "550e8400-e29b-41d4-a716-446655440000"
+ *               language:
+ *                 type: string
+ *                 enum: [en, de]
+ *                 default: en
+ *                 example: en
+ *     responses:
+ *       200:
+ *         description: Quiz started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Operation successful.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session_id:
+ *                       type: integer
+ *                       example: 1
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           question_text:
+ *                             type: string
+ *                             example: "What is the speed limit in school zones?"
+ *                           options:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["20 km/h", "30 km/h", "40 km/h", "50 km/h"]
+ *                           topic:
+ *                             type: string
+ *                             example: "Traffic Rules"
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *       400:
+ *         description: Quiz already completed today
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: No questions available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/start', QuizController.startQuiz);
+
+/**
+ * @swagger
+ * /api/v1/quiz/answer:
+ *   post:
+ *     summary: Submit answer
+ *     description: Submit an answer to a quiz question
+ *     tags: [Quiz]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [session_id, question_id, selected_option]
+ *             properties:
+ *               session_id:
+ *                 type: integer
+ *                 example: 1
+ *               question_id:
+ *                 type: integer
+ *                 example: 1
+ *               selected_option:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 3
+ *                 example: 0
+ *     responses:
+ *       200:
+ *         description: Answer submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Answer submitted successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     correct:
+ *                       type: boolean
+ *                       example: true
+ *                     correct_option:
+ *                       type: integer
+ *                       example: 0
+ *                     explanation:
+ *                       type: string
+ *                       example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                     session_stats:
+ *                       type: object
+ *                       properties:
+ *                         total_questions:
+ *                           type: integer
+ *                           example: 3
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 2
+ *                         score:
+ *                           type: number
+ *                           format: float
+ *                           example: 66.67
+ *       404:
+ *         description: Quiz session or question not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/answer', QuizController.submitAnswer);
+
+/**
+ * @swagger
+ * /api/v1/quiz/complete/{sessionId}:
+ *   post:
+ *     summary: Complete quiz
+ *     description: Mark a quiz session as completed
+ *     tags: [Quiz]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quiz session ID
+ *     responses:
+ *       200:
+ *         description: Quiz completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Quiz completed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session_id:
+ *                       type: integer
+ *                       example: 1
+ *                     total_questions:
+ *                       type: integer
+ *                       example: 5
+ *                     total_correct:
+ *                       type: integer
+ *                       example: 4
+ *                     score:
+ *                       type: number
+ *                       format: float
+ *                       example: 80.0
+ *                     completed:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: Quiz session not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/complete/:sessionId', QuizController.completeQuiz);
+
+/**
+ * @swagger
+ * /api/v1/quiz/history/{driverId}:
+ *   get:
+ *     summary: Get quiz history
+ *     description: Retrieve quiz history for a driver
+ *     tags: [Quiz]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of sessions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of sessions to skip
+ *     responses:
+ *       200:
+ *         description: Quiz history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           quiz_date:
+ *                             type: string
+ *                             format: date
+ *                             example: "2024-01-01"
+ *                           total_questions:
+ *                             type: integer
+ *                             example: 5
+ *                           total_correct:
+ *                             type: integer
+ *                             example: 4
+ *                           score:
+ *                             type: number
+ *                             format: float
+ *                             example: 80.0
+ *                           completed:
+ *                             type: boolean
+ *                             example: true
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ */
+router.get('/history/:driverId', QuizController.getQuizHistory);
+
+/**
+ * @swagger
+ * /api/v1/quiz/session/{sessionId}:
+ *   get:
+ *     summary: Get quiz session details
+ *     description: Retrieve detailed information about a quiz session
+ *     tags: [Quiz]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quiz session ID
+ *     responses:
+ *       200:
+ *         description: Quiz session details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
  *                   properties:
  *                     session:
- *                       $ref: '#/components/schemas/QuizSession'
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         driver_id:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440000"
+ *                         quiz_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2024-01-01"
+ *                         total_questions:
+ *                           type: integer
+ *                           example: 5
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 4
+ *                         score:
+ *                           type: number
+ *                           format: float
+ *                           example: 80.0
+ *                         completed:
+ *                           type: boolean
+ *                           example: true
+ *                         created_at:
+ *                           type: string
+ *                           format: date-time
  *                     responses:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
  *                           id:
- *                             type: string
- *                             format: uuid
+ *                             type: integer
+ *                             example: 1
  *                           question_id:
- *                             type: string
- *                             format: uuid
+ *                             type: integer
+ *                             example: 1
  *                           selected_option:
  *                             type: integer
+ *                             example: 0
  *                           correct:
  *                             type: boolean
+ *                             example: true
  *                           answered_at:
  *                             type: string
  *                             format: date-time
+ *       404:
+ *         description: Quiz session not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/session/:sessionId', QuizController.getQuizSessionDetails);
+
+/**
+ * @swagger
+ * /api/v1/quiz/stats/{driverId}:
+ *   get:
+ *     summary: Get driver statistics
+ *     description: Retrieve detailed statistics for a driver
+ *     tags: [Quiz]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     driver:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440000"
+ *                         total_quizzes:
+ *                           type: integer
+ *                           example: 10
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 45
+ *                         streak:
+ *                           type: integer
+ *                           example: 5
+ *                         last_quiz_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2024-01-01"
+ *                         accuracy:
+ *                           type: number
+ *                           format: float
+ *                           example: 90.0
+ *                     sessions:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           example: 10
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 45
+ *                         total_questions:
+ *                           type: integer
+ *                           example: 50
+ *                         overall_accuracy:
+ *                           type: integer
+ *                           example: 90
  *       404:
  *         description: Driver not found
  *         content:
@@ -71,328 +551,6 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-// Get today's quiz session for a driver
-router.get('/session/:driverId', async (req, res, next) => {
-    try {
-        const {
-            driverId
-        } = req.params;
-
-        // Verify driver exists
-        const driver = await Driver.findByPk(driverId);
-        if (!driver) {
-            return sendLocalizedResponse(res, 404, 'driver.not_found', null, req.userLanguage);
-        }
-
-        // Get or create today's session
-        let session = await QuizSession.getTodaysSession(driverId);
-
-        if (!session) {
-            session = await QuizSession.createTodaysSession(driverId);
-        }
-
-        // Get session responses if any
-        const responses = await QuizResponse.getSessionResponses(session.id);
-
-        const responseData = {
-            session: {
-                id: session.id,
-                driver_id: session.driver_id,
-                quiz_date: session.quiz_date,
-                completed: session.completed,
-                total_questions: session.total_questions,
-                total_correct: session.total_correct,
-                score: session.calculateScore()
-            },
-            responses: responses.map(response => ({
-                id: response.id,
-                question_id: response.question_id,
-                selected_option: response.selected_option,
-                correct: response.correct,
-                answered_at: response.answered_at
-            }))
-        };
-
-        return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Start a new quiz (get questions)
-router.post('/start/:driverId', async (req, res, next) => {
-    try {
-        const {
-            driverId
-        } = req.params;
-        const {
-            topic,
-            count = 5,
-            language
-        } = req.body;
-
-        // Use language from request, driver preference, or detected language
-        const quizLanguage = language || req.userLanguage || 'en';
-
-        // Verify driver exists
-        const driver = await Driver.findByPk(driverId);
-        if (!driver) {
-            return sendLocalizedResponse(res, 404, 'driver.not_found', null, req.userLanguage);
-        }
-
-        // Check if driver already has a completed session today
-        const existingSession = await QuizSession.getTodaysSession(driverId);
-        if (existingSession && existingSession.completed) {
-            return sendLocalizedResponse(res, 400, 'quiz.already_completed', null, req.userLanguage);
-        }
-
-        // Get random questions
-        const questions = await Question.getRandomQuestions(count, quizLanguage, topic);
-
-        if (questions.length === 0) {
-            return sendLocalizedResponse(res, 404, 'quiz.no_questions', null, req.userLanguage);
-        }
-
-        // Format questions for client (without correct answers)
-        const formattedQuestions = questions.map(question => ({
-            id: question.id,
-            question_text: question.getQuestionText(quizLanguage),
-            options: question.getOptions(quizLanguage),
-            topic: question.topic
-        }));
-
-        const responseData = {
-            questions: formattedQuestions,
-            session_id: existingSession ? existingSession.id : null,
-            language: quizLanguage
-        };
-
-        return sendLocalizedResponse(res, 200, 'api.success', responseData, req.userLanguage);
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Submit quiz answer
-router.post('/answer', async (req, res, next) => {
-    try {
-        const {
-            session_id,
-            question_id,
-            selected_option
-        } = req.body;
-
-        if (!session_id || !question_id || selected_option === undefined) {
-            return res.status(400).json({
-                success: false,
-                message: 'Session ID, question ID, and selected option are required'
-            });
-        }
-
-        // Get session
-        const session = await QuizSession.findByPk(session_id, {
-            include: [{
-                model: Driver,
-                as: 'driver'
-            }]
-        });
-
-        if (!session) {
-            return res.status(404).json({
-                success: false,
-                message: 'Quiz session not found'
-            });
-        }
-
-        if (session.completed) {
-            return res.status(400).json({
-                success: false,
-                message: 'Quiz session already completed'
-            });
-        }
-
-        // Get question
-        const question = await Question.findByPk(question_id);
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found'
-            });
-        }
-
-        // Check if already answered
-        const existingResponse = await QuizResponse.findOne({
-            where: {
-                quiz_session_id: session_id,
-                question_id: question_id
-            }
-        });
-
-        if (existingResponse) {
-            return res.status(400).json({
-                success: false,
-                message: 'Question already answered'
-            });
-        }
-
-        // Check if answer is correct
-        const isCorrect = question.isCorrectAnswer(selected_option);
-
-        // Add response to session
-        await session.addResponse(question_id, selected_option, isCorrect);
-
-        res.json({
-            success: true,
-            message: 'Answer submitted successfully',
-            data: {
-                correct: isCorrect,
-                correct_option: question.correct_option,
-                explanation: question.getExplanation(session.driver.language),
-                session_stats: {
-                    total_questions: session.total_questions,
-                    total_correct: session.total_correct,
-                    score: session.calculateScore()
-                }
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Complete quiz session
-router.post('/complete/:sessionId', async (req, res, next) => {
-    try {
-        const {
-            sessionId
-        } = req.params;
-
-        const session = await QuizSession.findByPk(sessionId, {
-            include: [{
-                    model: Driver,
-                    as: 'driver'
-                },
-                {
-                    model: QuizResponse,
-                    as: 'responses',
-                    include: [{
-                        model: Question,
-                        as: 'question'
-                    }]
-                }
-            ]
-        });
-
-        if (!session) {
-            return res.status(404).json({
-                success: false,
-                message: 'Quiz session not found'
-            });
-        }
-
-        if (session.completed) {
-            return res.status(400).json({
-                success: false,
-                message: 'Quiz session already completed'
-            });
-        }
-
-        // Complete the session
-        await session.complete();
-
-        // Get updated driver stats
-        await session.driver.reload();
-
-        res.json({
-            success: true,
-            message: 'Quiz completed successfully',
-            data: {
-                session: {
-                    id: session.id,
-                    completed: session.completed,
-                    total_questions: session.total_questions,
-                    total_correct: session.total_correct,
-                    score: session.calculateScore(),
-                    passing: session.isPassing()
-                },
-                driver_stats: {
-                    total_quizzes: session.driver.total_quizzes,
-                    total_correct: session.driver.total_correct,
-                    streak: session.driver.streak,
-                    accuracy: session.driver.calculateAccuracy()
-                }
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get quiz history for a driver
-router.get('/history/:driverId', async (req, res, next) => {
-    try {
-        const {
-            driverId
-        } = req.params;
-        const {
-            limit = 10, offset = 0
-        } = req.query;
-
-        // Verify driver exists
-        const driver = await Driver.findByPk(driverId);
-        if (!driver) {
-            return res.status(404).json({
-                success: false,
-                message: 'Driver not found'
-            });
-        }
-
-        const sessions = await QuizSession.findAndCountAll({
-            where: {
-                driver_id: driverId,
-                completed: true
-            },
-            order: [
-                ['quiz_date', 'DESC']
-            ],
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            include: [{
-                model: QuizResponse,
-                as: 'responses',
-                include: [{
-                    model: Question,
-                    as: 'question'
-                }]
-            }]
-        });
-
-        const formattedSessions = sessions.rows.map(session => ({
-            id: session.id,
-            quiz_date: session.quiz_date,
-            total_questions: session.total_questions,
-            total_correct: session.total_correct,
-            score: session.calculateScore(),
-            passing: session.isPassing(),
-            responses: session.responses.map(response => ({
-                question_id: response.question_id,
-                selected_option: response.selected_option,
-                correct: response.correct
-            }))
-        }));
-
-        res.json({
-            success: true,
-            data: {
-                sessions: formattedSessions,
-                total: sessions.count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+router.get('/stats/:driverId', QuizController.getDriverStats);
 
 module.exports = router;
