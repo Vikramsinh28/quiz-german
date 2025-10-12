@@ -1,0 +1,46 @@
+{
+    "name": "daily-quiz-app",
+    "version": "1.0.0",
+    "description": "Daily Quiz App with PostgreSQL and Sequelize",
+    "main": "src/app.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "dev": "nodemon src/app.js",
+        "db:init": "node src/scripts/init-db.js",
+        "db:reset": "node src/scripts/reset-db.js",
+        "db:migrate": "npx sequelize-cli db:migrate",
+        "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+        "db:seed": "npx sequelize-cli db:seed:all",
+        "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
+        "db:create": "npx sequelize-cli db:create",
+        "db:drop": "npx sequelize-cli db:drop"
+    },
+    "dependencies": {
+        "axios": "^1.12.2",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "firebase-admin": "^13.5.0",
+        "i18next": "^25.6.0",
+        "i18next-express-middleware": "^2.0.0",
+        "i18next-http-middleware": "^3.8.1",
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3",
+        "pg-hstore": "^2.3.4",
+        "sequelize": "^6.35.0",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2",
+        "sequelize-cli": "^6.6.2"
+    },
+    "keywords": [
+        "quiz",
+        "postgresql",
+        "sequelize",
+        "nodejs"
+    ],
+    "author": "Your Name",
+    "license": "MIT"
+}
