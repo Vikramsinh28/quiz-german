@@ -1,6 +1,4 @@
-const {
-    sendLocalizedResponse
-} = require('../utils/i18n');
+const { sendLocalizedResponse } = require('../utils/responseMessages');
 
 const errorHandler = (err, req, res, next) => {
     console.error('Error:', err);

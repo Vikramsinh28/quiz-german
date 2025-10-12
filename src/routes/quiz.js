@@ -6,9 +6,8 @@ const {
     QuizResponse
 } = require('../models');
 const {
-    sendLocalizedResponse,
-    isLanguageSupported
-} = require('../utils/i18n');
+    sendLocalizedResponse
+} = require('../utils/responseMessages');
 const router = express.Router();
 
 // Get today's quiz session for a driver
@@ -103,8 +102,8 @@ router.post('/start/:driverId', async (req, res, next) => {
         // Format questions for client (without correct answers)
         const formattedQuestions = questions.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(quizLanguage),
-            options: question.getOptions(quizLanguage),
+            question_text: question.getQuestionText(),
+            options: question.getOptions(),
             topic: question.topic
         }));
 
@@ -194,7 +193,7 @@ router.post('/answer', async (req, res, next) => {
             data: {
                 correct: isCorrect,
                 correct_option: question.correct_option,
-                explanation: question.getExplanation(session.driver.language),
+                explanation: question.getExplanation(),
                 session_stats: {
                     total_questions: session.total_questions,
                     total_correct: session.total_correct,

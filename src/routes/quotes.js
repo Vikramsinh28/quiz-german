@@ -33,7 +33,7 @@ router.get('/today', async (req, res, next) => {
 
         const responseData = {
             id: quote.id,
-            text: quote.getText(quoteLanguage),
+            text: quote.getText(),
             language: quote.language,
             scheduled_date: quote.scheduled_date,
             is_active: quote.is_active
@@ -65,7 +65,7 @@ router.get('/random', async (req, res, next) => {
             success: true,
             data: {
                 id: quote.id,
-                text: quote.getText(language),
+                text: quote.getText(),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active
@@ -98,7 +98,7 @@ router.get('/:id', async (req, res, next) => {
             success: true,
             data: {
                 id: quote.id,
-                text: quote.getText(language),
+                text: quote.getText(),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active,
@@ -134,7 +134,7 @@ router.get('/', async (req, res, next) => {
 
         const formattedQuotes = quotes.rows.map(quote => ({
             id: quote.id,
-            text: quote.getText(language),
+            text: quote.getText(),
             language: quote.language,
             scheduled_date: quote.scheduled_date,
             is_active: quote.is_active,

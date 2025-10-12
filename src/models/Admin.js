@@ -10,33 +10,9 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
-        firebase_uid: {
-            type: DataTypes.STRING(128),
-            allowNull: true,
-            unique: true,
-            validate: {
-                notEmpty: true
-            }
-        },
-        email: {
-            type: DataTypes.STRING(255),
-            allowNull: true,
-            validate: {
-                isEmail: true
-            }
-        },
-        name: {
-            type: DataTypes.STRING(255),
-            allowNull: true
-        },
-        admin_code: {
-            type: DataTypes.STRING(50),
-            allowNull: true,
-            unique: true
-        },
         username: {
             type: DataTypes.STRING(100),
-            allowNull: true,
+            allowNull: false,
             unique: true,
             validate: {
                 len: [3, 100],
@@ -45,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         password_hash: {
             type: DataTypes.TEXT,
-            allowNull: true
+            allowNull: false
         },
         role: {
             type: DataTypes.STRING(50),
@@ -62,15 +38,6 @@ module.exports = (sequelize, DataTypes) => {
         createdAt: 'created_at',
         updatedAt: 'updated_at',
         indexes: [{
-                fields: ['firebase_uid']
-            },
-            {
-                fields: ['email']
-            },
-            {
-                fields: ['admin_code']
-            },
-            {
                 unique: true,
                 fields: ['username']
             },

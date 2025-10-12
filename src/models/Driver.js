@@ -9,34 +9,6 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
-        firebase_uid: {
-            type: DataTypes.STRING(128),
-            allowNull: true,
-            unique: true,
-            validate: {
-                notEmpty: true
-            }
-        },
-        email: {
-            type: DataTypes.STRING(255),
-            allowNull: true,
-            validate: {
-                isEmail: true
-            }
-        },
-        name: {
-            type: DataTypes.STRING(255),
-            allowNull: true
-        },
-        driver_license_number: {
-            type: DataTypes.STRING(50),
-            allowNull: true,
-            unique: true
-        },
-        phone_number: {
-            type: DataTypes.STRING(20),
-            allowNull: true
-        },
         device_token: {
             type: DataTypes.TEXT,
             allowNull: true
@@ -81,15 +53,6 @@ module.exports = (sequelize, DataTypes) => {
         createdAt: 'created_at',
         updatedAt: 'updated_at',
         indexes: [{
-                fields: ['firebase_uid']
-            },
-            {
-                fields: ['email']
-            },
-            {
-                fields: ['driver_license_number']
-            },
-            {
                 fields: ['device_token']
             },
             {

@@ -10,18 +10,11 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         text: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: false,
             validate: {
-                isValidText(value) {
-                    if (!value || typeof value !== 'object') {
-                        throw new Error('Quote text must be a valid JSON object');
-                    }
-                    // Check if at least English is provided
-                    if (!value.en || typeof value.en !== 'string') {
-                        throw new Error('Quote text must include English (en) version');
-                    }
-                }
+                notEmpty: true,
+                len: [1, 1000]
             }
         },
         language: {
@@ -59,8 +52,8 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Quote.prototype.getText = function (language = 'en') {
-        return this.text[language] || this.text.en;
+    Quote.prototype.getText = function () {
+        return this.text;
     };
 
     // Class methods

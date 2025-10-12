@@ -10,33 +10,19 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         question_text: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: false,
             validate: {
-                isValidQuestionText(value) {
-                    if (!value || typeof value !== 'object') {
-                        throw new Error('Question text must be a valid JSON object');
-                    }
-                    // Check if at least English is provided
-                    if (!value.en || typeof value.en !== 'string') {
-                        throw new Error('Question text must include English (en) version');
-                    }
-                }
+                notEmpty: true,
+                len: [1, 1000]
             }
         },
         options: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: false,
             validate: {
-                isValidOptions(value) {
-                    if (!value || typeof value !== 'object') {
-                        throw new Error('Options must be a valid JSON object');
-                    }
-                    // Check if at least English options are provided
-                    if (!value.en || !Array.isArray(value.en) || value.en.length !== 4) {
-                        throw new Error('Options must include English (en) array with exactly 4 options');
-                    }
-                }
+                notEmpty: true,
+                len: [1, 2000]
             }
         },
         correct_option: {
@@ -48,14 +34,10 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         explanation: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: true,
             validate: {
-                isValidExplanation(value) {
-                    if (value && typeof value !== 'object') {
-                        throw new Error('Explanation must be a valid JSON object');
-                    }
-                }
+                len: [0, 1000]
             }
         },
         topic: {
@@ -104,17 +86,22 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Question.prototype.getQuestionText = function (language = 'en') {
-        return this.question_text[language] || this.question_text.en;
+    Question.prototype.getQuestionText = function () {
+        return this.question_text;
     };
 
-    Question.prototype.getOptions = function (language = 'en') {
-        return this.options[language] || this.options.en;
+    Question.prototype.getOptions = function () {
+        // Parse options from string (assuming comma-separated or JSON string)
+        try {
+            return JSON.parse(this.options);
+        } catch (error) {
+            // If not JSON, split by comma
+            return this.options.split(',').map(option => option.trim());
+        }
     };
 
-    Question.prototype.getExplanation = function (language = 'en') {
-        if (!this.explanation) return null;
-        return this.explanation[language] || this.explanation.en;
+    Question.prototype.getExplanation = function () {
+        return this.explanation;
     };
 
     Question.prototype.isCorrectAnswer = function (selectedOption) {

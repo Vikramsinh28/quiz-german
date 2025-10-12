@@ -39,10 +39,10 @@ router.get('/random', async (req, res, next) => {
         // Format questions for client (without correct answers)
         const formattedQuestions = questions.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(questionLanguage),
-            options: question.getOptions(questionLanguage),
+            question_text: question.getQuestionText(),
+            options: question.getOptions(),
             topic: question.topic,
-            explanation: question.getExplanation(questionLanguage)
+            explanation: question.getExplanation()
         }));
 
         const responseData = {
@@ -82,10 +82,10 @@ router.get('/:id', async (req, res, next) => {
             success: true,
             data: {
                 id: question.id,
-                question_text: question.getQuestionText(language),
-                options: question.getOptions(language),
+                question_text: question.getQuestionText(),
+                options: question.getOptions(),
                 topic: question.topic,
-                explanation: question.getExplanation(language),
+                explanation: question.getExplanation(),
                 is_active: question.is_active,
                 created_at: question.created_at,
                 stats: {
@@ -124,10 +124,10 @@ router.get('/topic/:topic', async (req, res, next) => {
 
         const formattedQuestions = questions.rows.map(question => ({
             id: question.id,
-            question_text: question.getQuestionText(language),
-            options: question.getOptions(language),
+            question_text: question.getQuestionText(),
+            options: question.getOptions(),
             topic: question.topic,
-            explanation: question.getExplanation(language)
+            explanation: question.getExplanation()
         }));
 
         res.json({

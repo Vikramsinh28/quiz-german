@@ -7,15 +7,8 @@ const DatabaseManager = require('./utils/database');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 const {
-    i18next,
-    middleware: i18nMiddleware
-} = require('./config/i18n');
-const {
     languageMiddleware
-} = require('./utils/i18n');
-const {
-    initializeFirebase
-} = require('./config/firebase');
+} = require('./utils/responseMessages');
 
 // Import routes
 const driverRoutes = require('./routes/drivers');
@@ -23,7 +16,6 @@ const questionRoutes = require('./routes/questions');
 const quizRoutes = require('./routes/quiz');
 const adminRoutes = require('./routes/admin');
 const quoteRoutes = require('./routes/quotes');
-const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,8 +29,7 @@ app.use(express.urlencoded({
     extended: true
 }));
 
-// i18n middleware
-app.use(i18nMiddleware.handle(i18next));
+// Language middleware
 app.use(languageMiddleware);
 
 // Request logging middleware
@@ -67,7 +58,6 @@ app.get('/health', async (req, res) => {
 });
 
 // API Routes
-app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/drivers', driverRoutes);
 app.use('/api/v1/questions', questionRoutes);
 app.use('/api/v1/quiz', quizRoutes);
@@ -76,45 +66,33 @@ app.use('/api/v1/quotes', quoteRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
-    const {
-        getSupportedLanguages,
-        DEFAULT_LANGUAGE
-    } = require('./utils/i18n');
-
     res.json({
         message: 'Daily Quiz App API',
         version: '1.0.0',
         language: {
-            current: req.userLanguage || DEFAULT_LANGUAGE,
-            supported: getSupportedLanguages(),
-            default: DEFAULT_LANGUAGE
+            current: req.userLanguage || 'en',
+            supported: ['en', 'de'],
+            default: 'en'
         },
         endpoints: {
             health: '/health',
-            auth: '/api/v1/auth',
             drivers: '/api/v1/drivers',
             questions: '/api/v1/questions',
             quiz: '/api/v1/quiz',
             admin: '/api/v1/admin',
-            quotes: '/api/v1/quotes',
-            languages: '/api/v1/languages'
+            quotes: '/api/v1/quotes'
         }
     });
 });
 
 // Get supported languages
 app.get('/api/v1/languages', (req, res) => {
-    const {
-        getSupportedLanguages,
-        DEFAULT_LANGUAGE
-    } = require('./utils/i18n');
-
     res.json({
         success: true,
         data: {
-            current: req.userLanguage || DEFAULT_LANGUAGE,
-            supported: getSupportedLanguages(),
-            default: DEFAULT_LANGUAGE
+            current: req.userLanguage || 'en',
+            supported: ['en', 'de'],
+            default: 'en'
         }
     });
 });
@@ -142,9 +120,6 @@ async function startServer() {
         // Initialize database
         await DatabaseManager.initialize();
 
-        // Initialize Firebase
-        initializeFirebase();
-
         // Start listening
         app.listen(PORT, () => {
             console.log('🚀 Daily Quiz App Server Started!');
@@ -152,7 +127,7 @@ async function startServer() {
             console.log(`🌐 API available at http://localhost:${PORT}`);
             console.log(`❤️  Health check: http://localhost:${PORT}/health`);
             console.log(`📚 API docs: http://localhost:${PORT}/`);
-            console.log(`🔥 Firebase Auth: http://localhost:${PORT}/api/v1/auth`);
+            console.log(`🌍 Multi-language support: English & German`);
         });
     } catch (error) {
         console.error('❌ Failed to start server:', error);
