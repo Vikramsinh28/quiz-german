@@ -1,16 +1,22 @@
 services:
   - type: web
-    name: german-quiz-api
+    name: quiz-german-api
     env: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: quiz-german-db
+          property: connectionString
       - key: FIREBASE_SERVICE_ACCOUNT_PATH
-        value: ./firebase-service-account.json
+        value: /etc/secrets/firebase.json
       - key: PORT
         value: 3000
       - key: NODE_ENV
         value: production
+databases:
+  - name: quiz-german-db
+    plan: free

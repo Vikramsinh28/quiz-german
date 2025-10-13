@@ -1,4 +1,6 @@
-const admin = require('../config/firebase');
+const {
+    admin
+} = require('../config/firebase');
 
 async function verifyFirebaseToken(req, res, next) {
     try {
