@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: german-quiz-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: ./firebase-service-account.json
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production

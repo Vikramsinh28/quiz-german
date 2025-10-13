@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node src/app.js",
         "dev": "nodemon src/app.js",
+        "db:test": "node test-supabase-connection.js",
         "db:init": "node src/scripts/init-db.js",
         "db:reset": "node src/scripts/reset-db.js",
         "db:migrate": "npx sequelize-cli db:migrate",
@@ -16,12 +17,15 @@
         "db:drop": "npx sequelize-cli db:drop"
     },
     "dependencies": {
+        "axios": "^1.12.2",
         "bcryptjs": "^2.4.3",
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
         "express-rate-limit": "^8.1.0",
+        "firebase-admin": "^13.5.0",
         "jsonwebtoken": "^9.0.2",
+        "node-cron": "^4.2.1",
         "pg": "^8.11.3",
         "pg-hstore": "^2.3.4",
         "sequelize": "^6.35.0",

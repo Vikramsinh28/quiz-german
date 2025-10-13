@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'admins',
         timestamps: true,
         createdAt: 'created_at',
-        updatedAt: false,
+        updatedAt: 'updated_at',
         indexes: [{
                 unique: true,
                 fields: ['username']

@@ -13,7 +13,7 @@ const {
 } = require('./utils/responseMessages');
 
 // Import routes
-
+const authRoutes = require('./routes/authRoutes');
 const driverRoutes = require('./routes/drivers');
 const questionRoutes = require('./routes/questions');
 const quizRoutes = require('./routes/quiz');
@@ -119,6 +119,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 }));
 
 // API Routes
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/drivers', driverRoutes);
 app.use('/api/v1/questions', questionRoutes);
 app.use('/api/v1/quiz', quizRoutes);
@@ -277,14 +278,19 @@ async function startServer() {
         // Initialize database
         await DatabaseManager.initialize();
 
+        // Firebase and cron jobs will be added later
+        console.log('⚠️  Firebase and cron jobs not configured yet');
+
         // Start listening
         app.listen(PORT, () => {
             console.log('🚀 Daily Quiz App Server Started!');
             console.log(`📡 Server running on port ${PORT}`);
             console.log(`🌐 API available at http://localhost:${PORT}`);
             console.log(`❤️  Health check: http://localhost:${PORT}/health`);
-            console.log(`📚 API docs: http://localhost:${PORT}/`);
+            console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
+            console.log(`🔥 Firebase Auth: http://localhost:${PORT}/api/v1/auth`);
             console.log(`🌍 Multi-language support: English & German`);
+            console.log(`⏰ Scheduled jobs: Daily quotes (8 AM), Quiz reminders (6 PM), Token cleanup (Sun 2 AM)`);
         });
     } catch (error) {
         console.error('❌ Failed to start server:', error);
