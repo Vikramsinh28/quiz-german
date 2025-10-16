@@ -285,10 +285,6 @@ async function startServer() {
         app.listen(PORT, () => {
             console.log('🚀 Daily Quiz App Server Started!');
             console.log(`📡 Server running on port ${PORT}`);
-            console.log(`🌐 API available at http://localhost:${PORT}`);
-            console.log(`❤️  Health check: http://localhost:${PORT}/health`);
-            console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
-            console.log(`🔥 Firebase Auth: http://localhost:${PORT}/api/v1/auth`);
             console.log(`🌍 Multi-language support: English & German`);
             console.log(`⏰ Scheduled jobs: Daily quotes (8 AM), Quiz reminders (6 PM), Token cleanup (Sun 2 AM)`);
         });
