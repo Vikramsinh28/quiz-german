@@ -5,7 +5,8 @@ require('dotenv').config();
 let firebaseInitialized = false;
 
 try {
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    // Use environment variable if set, otherwise default to local file
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-service-account.json';
 
     if (!serviceAccountPath) {
         throw new Error('FIREBASE_SERVICE_ACCOUNT_PATH is not defined in environment variables');
