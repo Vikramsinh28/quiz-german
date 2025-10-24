@@ -6,9 +6,9 @@ const bcrypt = require('bcryptjs');
 module.exports = (sequelize, DataTypes) => {
     const Admin = sequelize.define('Admin', {
         id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true
+            type: DataTypes.BIGINT,
+            primaryKey: true,
+            autoIncrement: true
         },
         username: {
             type: DataTypes.STRING(100),

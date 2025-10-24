@@ -5,9 +5,9 @@ const {
 module.exports = (sequelize, DataTypes) => {
     const Driver = sequelize.define('Driver', {
         id: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            primaryKey: true
+            type: DataTypes.BIGINT,
+            primaryKey: true,
+            autoIncrement: true
         },
         firebase_uid: {
             type: DataTypes.STRING(128),

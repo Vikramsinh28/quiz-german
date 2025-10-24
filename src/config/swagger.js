@@ -82,9 +82,8 @@ const options = {
                     type: 'object',
                     properties: {
                         id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         username: {
                             type: 'string',
@@ -284,9 +283,8 @@ const options = {
                     type: 'object',
                     properties: {
                         id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         device_token: {
                             type: 'string',
@@ -324,14 +322,12 @@ const options = {
                     type: 'object',
                     properties: {
                         id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         driver_id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         quiz_date: {
                             type: 'string',

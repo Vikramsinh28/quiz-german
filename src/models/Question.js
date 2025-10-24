@@ -61,7 +61,7 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         created_by: {
-            type: DataTypes.UUID,
+            type: DataTypes.BIGINT,
             allowNull: true,
             references: {
                 model: 'admins',

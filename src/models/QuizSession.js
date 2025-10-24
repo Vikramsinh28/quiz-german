@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         driver_id: {
-            type: DataTypes.UUID,
+            type: DataTypes.BIGINT,
             allowNull: false,
             references: {
                 model: 'drivers',

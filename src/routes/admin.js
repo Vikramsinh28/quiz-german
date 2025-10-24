@@ -749,52 +749,6 @@ router.get('/drivers', authenticateToken, requireRole(['admin', 'editor', 'viewe
 
 /**
  * @swagger
- * /api/v1/admin/drivers/{id}:
- *   get:
- *     summary: Get driver by ID (admin)
- *     description: Retrieve a specific driver with full details
- *     tags: [Admin Management]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Driver ID
- *     responses:
- *       200:
- *         description: Driver retrieved successfully
- */
-router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverById);
-
-/**
- * @swagger
- * /api/v1/admin/drivers/{id}/stats:
- *   get:
- *     summary: Get driver statistics
- *     description: Retrieve detailed statistics for a specific driver
- *     tags: [Admin Management]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Driver ID
- *     responses:
- *       200:
- *         description: Driver statistics retrieved successfully
- */
-router.get('/drivers/:id/stats', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverStats);
-
-/**
- * @swagger
  * /api/v1/admin/drivers/top:
  *   get:
  *     summary: Get top performing drivers
@@ -848,5 +802,49 @@ router.get('/drivers/top', authenticateToken, requireRole(['admin', 'editor', 'v
  *         description: Active drivers retrieved successfully
  */
 router.get('/drivers/active-today', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getActiveDriversToday);
+
+/**
+ * @swagger
+ * /api/v1/admin/drivers/{id}:
+ *   get:
+ *     summary: Get driver by ID (admin)
+ *     description: Retrieve a specific driver with full details
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver retrieved successfully
+ */
+router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverById);
+
+/**
+ * @swagger
+ * /api/v1/admin/drivers/{id}/stats:
+ *   get:
+ *     summary: Get driver statistics
+ *     description: Retrieve detailed statistics for a specific driver
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Driver ID
+ *     responses:
+ *       200:
+ *         description: Driver statistics retrieved successfully
+ */
+router.get('/drivers/:id/stats', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverStats);
 
 module.exports = router;

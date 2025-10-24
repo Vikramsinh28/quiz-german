@@ -169,7 +169,7 @@ router.get('/random', QuestionController.getRandomQuestions);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', QuestionController.getQuestionById);
+// Moved to end of file to avoid route conflicts
 
 /**
  * @swagger
@@ -288,5 +288,49 @@ router.get('/topic/:topic', QuestionController.getQuestionsByTopic);
  *                       example: ["Traffic Rules", "Safety", "Driving Rules", "Traffic Signs"]
  */
 router.get('/topics', QuestionController.getAllTopics);
+
+/**
+ * @swagger
+ * /api/v1/questions/{id}:
+ *   get:
+ *     summary: Get question by ID
+ *     description: Retrieve a specific question by its ID
+ *     tags: [Questions]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Question ID
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *           default: en
+ *         description: Language for question
+ *     responses:
+ *       200:
+ *         description: Question retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Question'
+ *       404:
+ *         description: Question not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', QuestionController.getQuestionById);
 
 module.exports = router;
