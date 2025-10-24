@@ -37,7 +37,17 @@ app.use(languageMiddleware);
 
 // Request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    // Filter out development-related requests from logs
+    const devEndpoints = [
+        '/__server_sent_events__',
+        '/__webpack_hmr',
+        '/hot',
+        '/sockjs-node'
+    ];
+
+    if (!devEndpoints.includes(req.path)) {
+        console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    }
     next();
 });
 

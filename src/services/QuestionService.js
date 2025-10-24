@@ -195,16 +195,21 @@ class QuestionService {
 
         if (!data.question_text) {
             errors.push('Question text is required');
-        } else if (typeof data.question_text !== 'object' || (!data.question_text.en && !data.question_text.de)) {
-            errors.push('Question text must be an object with at least one language (en or de)');
+        } else if (typeof data.question_text !== 'string' || data.question_text.trim() === '') {
+            errors.push('Question text must be a non-empty string');
         }
 
         if (!data.options) {
             errors.push('Options are required');
+        } else if (!Array.isArray(data.options) || data.options.length !== 4) {
+            errors.push('Options must be an array with exactly 4 choices');
         } else {
-            const optionsArray = Array.isArray(data.options) ? data.options : (data.options.en || data.options.de || []);
-            if (optionsArray.length !== 4) {
-                errors.push('Options must contain exactly 4 choices');
+            // Validate each option is a non-empty string
+            for (let i = 0; i < data.options.length; i++) {
+                if (typeof data.options[i] !== 'string' || data.options[i].trim() === '') {
+                    errors.push(`Option ${i + 1} must be a non-empty string`);
+                    break;
+                }
             }
         }
 
@@ -212,6 +217,10 @@ class QuestionService {
             errors.push('Correct option is required');
         } else if (data.correct_option < 0 || data.correct_option > 3) {
             errors.push('Correct option must be between 0 and 3');
+        }
+
+        if (data.language && !['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'].includes(data.language)) {
+            errors.push('Language must be one of: en, de, fr, es, it, pt, ru, zh, ja, ko');
         }
 
         return errors;

@@ -22,7 +22,7 @@ class QuoteController {
 
             const responseData = {
                 id: quote.id,
-                text: quote.getText(quoteLanguage),
+                text: quote.getText(),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active
@@ -56,7 +56,7 @@ class QuoteController {
                 success: true,
                 data: {
                     id: quote.id,
-                    text: quote.getText(language),
+                    text: quote.getText(),
                     language: quote.language,
                     scheduled_date: quote.scheduled_date,
                     is_active: quote.is_active
@@ -92,7 +92,7 @@ class QuoteController {
                 success: true,
                 data: {
                     id: quote.id,
-                    text: quote.getText(language),
+                    text: quote.getText(),
                     language: quote.language,
                     scheduled_date: quote.scheduled_date,
                     is_active: quote.is_active,
@@ -124,7 +124,7 @@ class QuoteController {
 
             const formattedQuotes = quotes.rows.map(quote => ({
                 id: quote.id,
-                text: quote.getText(language),
+                text: quote.getText(),
                 language: quote.language,
                 scheduled_date: quote.scheduled_date,
                 is_active: quote.is_active,

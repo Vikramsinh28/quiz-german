@@ -49,7 +49,8 @@ class QuoteService {
         let quote = await Quote.findOne({
             where: {
                 scheduled_date: today,
-                is_active: true
+                is_active: true,
+                language: language
             }
         });
 
@@ -58,7 +59,8 @@ class QuoteService {
             quote = await Quote.findOne({
                 where: {
                     is_active: true,
-                    scheduled_date: null
+                    scheduled_date: null,
+                    language: language
                 },
                 order: Quote.sequelize.random()
             });
@@ -135,8 +137,12 @@ class QuoteService {
 
         if (!data.text) {
             errors.push('Quote text is required');
-        } else if (typeof data.text !== 'object' || (!data.text.en && !data.text.de)) {
-            errors.push('Quote text must be an object with at least one language (en or de)');
+        } else if (typeof data.text !== 'string' || data.text.trim() === '') {
+            errors.push('Quote text must be a non-empty string');
+        }
+
+        if (data.language && !['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'].includes(data.language)) {
+            errors.push('Language must be one of: en, de, fr, es, it, pt, ru, zh, ja, ko');
         }
 
         return errors;

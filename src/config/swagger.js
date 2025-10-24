@@ -146,20 +146,24 @@ const options = {
                     type: 'object',
                     properties: {
                         id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         question_text: {
                             type: 'string',
                             example: 'What is the German word for "hello"?'
                         },
                         options: {
-                            type: 'string',
-                            example: '["Hallo", "Guten Tag", "Tschüss", "Danke"]'
+                            type: 'array',
+                            items: {
+                                type: 'string'
+                            },
+                            example: ['Hallo', 'Guten Tag', 'Tschüss', 'Danke']
                         },
                         correct_option: {
                             type: 'integer',
+                            minimum: 0,
+                            maximum: 3,
                             example: 0
                         },
                         explanation: {
@@ -172,6 +176,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
+                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
                             example: 'en'
                         },
                         is_active: {
@@ -185,13 +190,50 @@ const options = {
                         }
                     }
                 },
+                QuestionCreateRequest: {
+                    type: 'object',
+                    required: ['question_text', 'options', 'correct_option', 'language'],
+                    properties: {
+                        question_text: {
+                            type: 'string',
+                            example: 'What is the German word for "hello"?'
+                        },
+                        options: {
+                            type: 'array',
+                            items: {
+                                type: 'string'
+                            },
+                            minItems: 4,
+                            maxItems: 4,
+                            example: ['Hallo', 'Guten Tag', 'Tschüss', 'Danke']
+                        },
+                        correct_option: {
+                            type: 'integer',
+                            minimum: 0,
+                            maximum: 3,
+                            example: 0
+                        },
+                        explanation: {
+                            type: 'string',
+                            example: 'Hallo is the most common way to say hello in German.'
+                        },
+                        topic: {
+                            type: 'string',
+                            example: 'greetings'
+                        },
+                        language: {
+                            type: 'string',
+                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            example: 'en'
+                        }
+                    }
+                },
                 Quote: {
                     type: 'object',
                     properties: {
                         id: {
-                            type: 'string',
-                            format: 'uuid',
-                            example: '550e8400-e29b-41d4-a716-446655440001'
+                            type: 'integer',
+                            example: 1
                         },
                         text: {
                             type: 'string',
@@ -199,6 +241,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
+                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
                             example: 'en'
                         },
                         scheduled_date: {
@@ -214,6 +257,26 @@ const options = {
                             type: 'string',
                             format: 'date-time',
                             example: '2024-01-01T00:00:00.000Z'
+                        }
+                    }
+                },
+                QuoteCreateRequest: {
+                    type: 'object',
+                    required: ['text', 'language'],
+                    properties: {
+                        text: {
+                            type: 'string',
+                            example: 'The journey of a thousand miles begins with one step.'
+                        },
+                        language: {
+                            type: 'string',
+                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            example: 'en'
+                        },
+                        scheduled_date: {
+                            type: 'string',
+                            format: 'date',
+                            example: '2024-01-01'
                         }
                     }
                 },

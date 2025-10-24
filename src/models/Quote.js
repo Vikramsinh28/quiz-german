@@ -10,10 +10,15 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         text: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: false,
             validate: {
-                notEmpty: true
+                notEmpty: true,
+                isString(value) {
+                    if (typeof value !== 'string') {
+                        throw new Error('text must be a string');
+                    }
+                }
             }
         },
         language: {
@@ -51,11 +56,8 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Quote.prototype.getText = function (language = 'en') {
-        if (typeof this.text === 'string') {
-            return this.text;
-        }
-        return this.text[language] || this.text.en || this.text;
+    Quote.prototype.getText = function () {
+        return this.text;
     };
 
     // Class methods
@@ -66,7 +68,8 @@ module.exports = (sequelize, DataTypes) => {
         let quote = await Quote.findOne({
             where: {
                 scheduled_date: today,
-                is_active: true
+                is_active: true,
+                language: language
             }
         });
 
@@ -75,7 +78,8 @@ module.exports = (sequelize, DataTypes) => {
             quote = await Quote.findOne({
                 where: {
                     is_active: true,
-                    scheduled_date: null
+                    scheduled_date: null,
+                    language: language
                 },
                 order: sequelize.random()
             });
@@ -87,7 +91,8 @@ module.exports = (sequelize, DataTypes) => {
     Quote.getRandomQuote = async function (language = 'en') {
         return await Quote.findOne({
             where: {
-                is_active: true
+                is_active: true,
+                language: language
             },
             order: sequelize.random()
         });

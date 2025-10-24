@@ -271,7 +271,7 @@ router.get('/questions', authenticateToken, requireRole(['admin', 'editor', 'vie
  * /api/v1/admin/questions:
  *   post:
  *     summary: Create new question
- *     description: Create a new question with multilingual support
+ *     description: Create a new question with single language support
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
@@ -280,56 +280,44 @@ router.get('/questions', authenticateToken, requireRole(['admin', 'editor', 'vie
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [question_text, options, correct_option]
- *             properties:
- *               question_text:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                     example: "What is the speed limit in residential areas?"
- *                   de:
- *                     type: string
- *                     example: "Wie hoch ist die Geschwindigkeitsbegrenzung in Wohngebieten?"
- *               options:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: array
- *                     items:
- *                       type: string
- *                     example: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
- *                   de:
- *                     type: array
- *                     items:
- *                       type: string
- *                     example: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
- *               correct_option:
- *                 type: integer
- *                 minimum: 0
- *                 maximum: 3
- *                 example: 0
- *               explanation:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                     example: "The speed limit is 30 km/h in residential areas."
- *                   de:
- *                     type: string
- *                     example: "Die Geschwindigkeitsbegrenzung beträgt 30 km/h in Wohngebieten."
- *               topic:
- *                 type: string
- *                 example: "Traffic Rules"
- *               language:
- *                 type: string
- *                 enum: [en, de]
- *                 default: en
- *                 example: en
+ *             $ref: '#/components/schemas/QuestionCreateRequest'
+ *           example:
+ *             question_text: "What is the speed limit in residential areas?"
+ *             options: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
+ *             correct_option: 0
+ *             explanation: "The speed limit is 30 km/h in residential areas."
+ *             topic: "Traffic Rules"
+ *             language: "en"
  *     responses:
  *       201:
  *         description: Question created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Question created successfully"
+ *               data:
+ *                 id: 1
+ *                 question_text: "What is the speed limit in residential areas?"
+ *                 options: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
+ *                 correct_option: 0
+ *                 explanation: "The speed limit is 30 km/h in residential areas."
+ *                 topic: "Traffic Rules"
+ *                 language: "en"
+ *                 is_active: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               success: false
+ *               message: "Validation error"
+ *               data:
+ *                 errors: ["Question text must be a non-empty string"]
  */
 router.post('/questions', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUESTION'), QuestionController.createQuestion);
 
@@ -360,7 +348,7 @@ router.get('/questions/:id', authenticateToken, requireRole(['admin', 'editor', 
  * /api/v1/admin/questions/{id}:
  *   put:
  *     summary: Update question
- *     description: Update an existing question
+ *     description: Update an existing question with single language support
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
@@ -379,44 +367,56 @@ router.get('/questions/:id', authenticateToken, requireRole(['admin', 'editor', 
  *             type: object
  *             properties:
  *               question_text:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   de:
- *                     type: string
+ *                 type: string
+ *                 example: "What is the speed limit in residential areas?"
  *               options:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: array
- *                     items:
- *                       type: string
- *                   de:
- *                     type: array
- *                     items:
- *                       type: string
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
  *               correct_option:
  *                 type: integer
  *                 minimum: 0
  *                 maximum: 3
+ *                 example: 0
  *               explanation:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   de:
- *                     type: string
+ *                 type: string
+ *                 example: "The speed limit is 30 km/h in residential areas."
  *               topic:
  *                 type: string
+ *                 example: "Traffic Rules"
  *               language:
  *                 type: string
- *                 enum: [en, de]
+ *                 enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *                 example: "en"
  *               is_active:
  *                 type: boolean
+ *                 example: true
  *     responses:
  *       200:
  *         description: Question updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Question updated successfully"
+ *               data:
+ *                 id: 1
+ *                 question_text: "What is the speed limit in residential areas?"
+ *                 options: ["30 km/h", "50 km/h", "60 km/h", "70 km/h"]
+ *                 correct_option: 0
+ *                 explanation: "The speed limit is 30 km/h in residential areas."
+ *                 topic: "Traffic Rules"
+ *                 language: "en"
+ *                 is_active: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/questions/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUESTION'), QuestionController.updateQuestion);
 
@@ -469,7 +469,7 @@ router.delete('/questions/:id', authenticateToken, requireRole(['admin', 'editor
  *         name: language
  *         schema:
  *           type: string
- *           enum: [en, de]
+ *           enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
  *         description: Filter by language
  *       - in: query
  *         name: active_only
@@ -480,6 +480,24 @@ router.delete('/questions/:id', authenticateToken, requireRole(['admin', 'editor
  *     responses:
  *       200:
  *         description: Quotes retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Quotes retrieved successfully"
+ *               data:
+ *                 quotes:
+ *                   - id: 1
+ *                     text: "Drive safely today and every day."
+ *                     language: "en"
+ *                     scheduled_date: null
+ *                     is_active: true
+ *                     created_at: "2024-01-01T00:00:00.000Z"
+ *                 total: 1
+ *                 limit: 20
+ *                 offset: 0
  */
 router.get('/quotes', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuoteController.getAllQuotesAdmin);
 
@@ -488,7 +506,7 @@ router.get('/quotes', authenticateToken, requireRole(['admin', 'editor', 'viewer
  * /api/v1/admin/quotes:
  *   post:
  *     summary: Create new quote
- *     description: Create a new quote with multilingual support
+ *     description: Create a new quote with single language support
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
@@ -497,39 +515,84 @@ router.get('/quotes', authenticateToken, requireRole(['admin', 'editor', 'viewer
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [text]
- *             properties:
- *               text:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                     example: "Drive safely today and every day."
- *                   de:
- *                     type: string
- *                     example: "Fahren Sie heute und jeden Tag sicher."
- *               language:
- *                 type: string
- *                 enum: [en, de]
- *                 default: en
- *                 example: en
- *               scheduled_date:
- *                 type: string
- *                 format: date
- *                 example: "2024-01-01"
+ *             $ref: '#/components/schemas/QuoteCreateRequest'
+ *           example:
+ *             text: "Drive safely today and every day."
+ *             language: "en"
+ *             scheduled_date: "2024-01-01"
  *     responses:
  *       201:
  *         description: Quote created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Quote created successfully"
+ *               data:
+ *                 id: 1
+ *                 text: "Drive safely today and every day."
+ *                 language: "en"
+ *                 scheduled_date: "2024-01-01"
+ *                 is_active: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/quotes', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('CREATE_QUOTE'), QuoteController.createQuote);
 
 /**
  * @swagger
  * /api/v1/admin/quotes/{id}:
+ *   get:
+ *     summary: Get quote by ID (admin)
+ *     description: Retrieve a specific quote with full details
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Quote ID
+ *     responses:
+ *       200:
+ *         description: Quote retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Quote retrieved successfully"
+ *               data:
+ *                 id: 1
+ *                 text: "Drive safely today and every day."
+ *                 language: "en"
+ *                 scheduled_date: null
+ *                 is_active: true
+ *                 created_at: "2024-01-01T00:00:00.000Z"
+ *       404:
+ *         description: Quote not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/quotes/:id', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuoteController.getQuoteById);
+
+/**
+ * @swagger
+ * /api/v1/admin/quotes/{id}:
  *   put:
  *     summary: Update quote
- *     description: Update an existing quote
+ *     description: Update an existing quote with single language support
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
@@ -548,23 +611,41 @@ router.post('/quotes', authenticateToken, requireRole(['admin', 'editor']), logA
  *             type: object
  *             properties:
  *               text:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   de:
- *                     type: string
+ *                 type: string
+ *                 example: "Drive safely today and every day."
  *               language:
  *                 type: string
- *                 enum: [en, de]
+ *                 enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *                 example: "en"
  *               scheduled_date:
  *                 type: string
  *                 format: date
+ *                 example: "2024-01-01"
  *               is_active:
  *                 type: boolean
+ *                 example: true
  *     responses:
  *       200:
  *         description: Quote updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Quote updated successfully"
+ *               data:
+ *                 id: 1
+ *                 text: "Drive safely today and every day."
+ *                 language: "en"
+ *                 scheduled_date: "2024-01-01"
+ *                 is_active: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/quotes/:id', authenticateToken, requireRole(['admin', 'editor']), logAdminAction('UPDATE_QUOTE'), QuoteController.updateQuote);
 

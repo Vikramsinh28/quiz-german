@@ -10,14 +10,19 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         question_text: {
-            type: DataTypes.JSONB,
+            type: DataTypes.TEXT,
             allowNull: false,
             validate: {
-                notEmpty: true
+                notEmpty: true,
+                isString(value) {
+                    if (typeof value !== 'string') {
+                        throw new Error('question_text must be a string');
+                    }
+                }
             }
         },
         options: {
-            type: DataTypes.JSONB,
+            type: DataTypes.JSON, // Store as simple array of strings
             allowNull: false,
             validate: {
                 notEmpty: true
@@ -32,8 +37,15 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         explanation: {
-            type: DataTypes.JSONB,
-            allowNull: true
+            type: DataTypes.TEXT,
+            allowNull: true,
+            validate: {
+                isString(value) {
+                    if (value !== null && value !== undefined && typeof value !== 'string') {
+                        throw new Error('explanation must be a string');
+                    }
+                }
+            }
         },
         topic: {
             type: DataTypes.STRING(100),
@@ -81,46 +93,31 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     // Instance methods
-    Question.prototype.getQuestionText = function (language = 'en') {
-        if (typeof this.question_text === 'string') {
-            return this.question_text;
-        }
-        return this.question_text[language] || this.question_text.en || this.question_text;
+    Question.prototype.getQuestionText = function () {
+        return this.question_text;
     };
 
-    Question.prototype.getOptions = function (language = 'en') {
+    Question.prototype.getOptions = function () {
+        // Handle both array and string formats
+        if (Array.isArray(this.options)) {
+            return this.options;
+        }
+
+        // If stored as string, try to parse as JSON array
         if (typeof this.options === 'string') {
             try {
                 return JSON.parse(this.options);
             } catch (error) {
+                // Fallback: split by comma if it's a simple string
                 return this.options.split(',').map(option => option.trim());
             }
         }
 
-        // Handle JSONB options
-        if (Array.isArray(this.options)) {
-            return this.options.map(option => {
-                if (typeof option === 'string') return option;
-                return option[language] || option.en || option;
-            });
-        }
-
-        // Handle object with language keys
-        if (this.options[language]) {
-            return this.options[language];
-        }
-
-        return this.options.en || this.options;
+        return this.options;
     };
 
-    Question.prototype.getExplanation = function (language = 'en') {
-        if (!this.explanation) return null;
-
-        if (typeof this.explanation === 'string') {
-            return this.explanation;
-        }
-
-        return this.explanation[language] || this.explanation.en || this.explanation;
+    Question.prototype.getExplanation = function () {
+        return this.explanation;
     };
 
     Question.prototype.isCorrectAnswer = function (selectedOption) {
@@ -130,7 +127,8 @@ module.exports = (sequelize, DataTypes) => {
     // Class methods
     Question.getRandomQuestions = async function (count = 5, language = 'en', topic = null) {
         const whereClause = {
-            is_active: true
+            is_active: true,
+            language: language
         };
 
         if (topic) {

@@ -123,67 +123,6 @@ const adminRateLimit = rateLimit({
     legacyHeaders: false,
 });
 
-// Optional authentication middleware (doesn't fail if no token)
-const optionalAuth = async (req, res, next) => {
-    try {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
-        if (token) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const admin = await Admin.findByPk(decoded.id);
-            if (admin) {
-                req.admin = admin;
-            }
-        }
-        next();
-    } catch (error) {
-        // Continue without authentication
-        next();
-    }
-};
-
-// Check if admin is active
-const requireActiveAdmin = (req, res, next) => {
-    if (!req.admin) {
-        return sendLocalizedResponse(res, 401, 'api.unauthorized', null, req.userLanguage, {
-            reason: 'Authentication required'
-        });
-    }
-    // Add any additional checks for admin status here
-    next();
-};
-
-// Validate admin permissions for specific actions
-const validatePermission = (permission) => {
-    return (req, res, next) => {
-        if (!req.admin) {
-            return sendLocalizedResponse(res, 401, 'api.unauthorized', null, req.userLanguage, {
-                reason: 'Authentication required'
-            });
-        }
-
-        // Define permission mappings
-        const permissions = {
-            'admin': ['*'], // Admin has all permissions
-            'editor': ['create_question', 'update_question', 'delete_question', 'create_quote', 'update_quote', 'view_dashboard'],
-            'viewer': ['view_dashboard', 'view_questions', 'view_quotes']
-        };
-
-        const adminPermissions = permissions[req.admin.role] || [];
-
-        if (!adminPermissions.includes('*') && !adminPermissions.includes(permission)) {
-            return sendLocalizedResponse(res, 403, 'api.unauthorized', null, req.userLanguage, {
-                reason: 'Insufficient permissions',
-                required_permission: permission,
-                current_role: req.admin.role
-            });
-        }
-
-        next();
-    };
-};
-
 // Generate JWT token
 const generateToken = (admin) => {
     return jwt.sign({
@@ -197,26 +136,11 @@ const generateToken = (admin) => {
     );
 };
 
-// Verify token and return admin info
-const verifyToken = async (token) => {
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const admin = await Admin.findByPk(decoded.id);
-        return admin;
-    } catch (error) {
-        return null;
-    }
-};
-
 module.exports = {
     authenticateToken,
     requireRole,
     logAdminAction,
     loginRateLimit,
     adminRateLimit,
-    optionalAuth,
-    requireActiveAdmin,
-    validatePermission,
-    generateToken,
-    verifyToken
+    generateToken
 };
