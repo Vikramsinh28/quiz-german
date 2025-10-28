@@ -1,5 +1,6 @@
 const express = require('express');
 const AuthController = require('../controllers/AuthController');
+const DriverController = require('../controllers/DriverController');
 const {
     verifyFirebaseToken
 } = require('../middlewares/firebaseAuth');
@@ -81,7 +82,7 @@ router.get('/test', (req, res) => {
  *     description: Test Firebase token verification
  *     tags: [Authentication]
  *     security:
- *       - bearerAuth: []
+ *       - firebaseAuth: []
  *     responses:
  *       200:
  *         description: Firebase authentication successful
@@ -98,7 +99,7 @@ router.get('/firebase-test', verifyFirebaseToken, AuthController.testAuth);
  *     description: Authenticate driver using Firebase ID token
  *     tags: [Authentication]
  *     security:
- *       - bearerAuth: []
+ *       - firebaseAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -129,7 +130,7 @@ router.post('/login', verifyFirebaseToken, AuthController.loginDriver);
  *     description: Get driver profile information
  *     tags: [Authentication]
  *     security:
- *       - bearerAuth: []
+ *       - firebaseAuth: []
  *     responses:
  *       200:
  *         description: Profile retrieved successfully
@@ -139,5 +140,226 @@ router.post('/login', verifyFirebaseToken, AuthController.loginDriver);
  *         description: Driver not found
  */
 router.get('/profile', verifyFirebaseToken, AuthController.getDriverProfile);
+
+/**
+ * @swagger
+ * /api/v1/auth/profile:
+ *   put:
+ *     summary: Update driver profile
+ *     description: Update driver profile information (authenticated driver only)
+ *     tags: [Authentication]
+ *     security:
+ *       - firebaseAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone_number:
+ *                 type: string
+ *                 example: "+1234567890"
+ *               fcm_token:
+ *                 type: string
+ *                 example: "fcm_token_123"
+ *               device_token:
+ *                 type: string
+ *                 example: "device_token_456"
+ *               language:
+ *                 type: string
+ *                 enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
+ *                 example: "en"
+ *               name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john.doe@example.com"
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-01"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
+ *               address_line1:
+ *                 type: string
+ *                 example: "123 Main Street"
+ *               address_line2:
+ *                 type: string
+ *                 example: "Apt 4B"
+ *               city:
+ *                 type: string
+ *                 example: "Berlin"
+ *               state_province:
+ *                 type: string
+ *                 example: "Berlin"
+ *               postal_code:
+ *                 type: string
+ *                 example: "10115"
+ *               country:
+ *                 type: string
+ *                 example: "Germany"
+ *               driver_license_number:
+ *                 type: string
+ *                 example: "DL123456789"
+ *               license_issue_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2020-01-01"
+ *               license_expiry_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2030-01-01"
+ *               emergency_contact_name:
+ *                 type: string
+ *                 example: "Jane Doe"
+ *               emergency_contact_phone:
+ *                 type: string
+ *                 example: "+1234567890"
+ *               emergency_contact_relationship:
+ *                 type: string
+ *                 example: "Spouse"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Profile updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     firebase_uid:
+ *                       type: string
+ *                       example: "firebase_uid_123"
+ *                     phone_number:
+ *                       type: string
+ *                       example: "+1234567890"
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *                     name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     email:
+ *                       type: string
+ *                       example: "john.doe@example.com"
+ *                     date_of_birth:
+ *                       type: string
+ *                       format: date
+ *                       example: "1990-01-01"
+ *                     gender:
+ *                       type: string
+ *                       example: "male"
+ *                     address:
+ *                       type: object
+ *                       properties:
+ *                         line1:
+ *                           type: string
+ *                           example: "123 Main Street"
+ *                         line2:
+ *                           type: string
+ *                           example: "Apt 4B"
+ *                         city:
+ *                           type: string
+ *                           example: "Berlin"
+ *                         state_province:
+ *                           type: string
+ *                           example: "Berlin"
+ *                         postal_code:
+ *                           type: string
+ *                           example: "10115"
+ *                         country:
+ *                           type: string
+ *                           example: "Germany"
+ *                     license:
+ *                       type: object
+ *                       properties:
+ *                         number:
+ *                           type: string
+ *                           example: "DL123456789"
+ *                         issue_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2020-01-01"
+ *                         expiry_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2030-01-01"
+ *                     emergency_contact:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                           example: "Jane Doe"
+ *                         phone:
+ *                           type: string
+ *                           example: "+1234567890"
+ *                         relationship:
+ *                           type: string
+ *                           example: "Spouse"
+ *                     profile_completed:
+ *                       type: boolean
+ *                       example: true
+ *                     profile_completion_percentage:
+ *                       type: integer
+ *                       example: 85
+ *                     quiz_stats:
+ *                       type: object
+ *                       properties:
+ *                         total_quizzes:
+ *                           type: integer
+ *                           example: 10
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 45
+ *                         accuracy:
+ *                           type: integer
+ *                           example: 90
+ *                         streak:
+ *                           type: integer
+ *                           example: 5
+ *                         last_quiz_date:
+ *                           type: string
+ *                           format: date
+ *                           example: "2024-01-01"
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Email must be a valid email address"]
+ *       401:
+ *         description: Invalid Firebase token
+ *       404:
+ *         description: Driver not found
+ */
+router.put('/profile', verifyFirebaseToken, DriverController.updateDriverProfile);
 
 module.exports = router;

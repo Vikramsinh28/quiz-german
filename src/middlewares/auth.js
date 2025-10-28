@@ -102,7 +102,7 @@ const logAdminAction = (action) => {
 // Rate limiting for login attempts
 const loginRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 requests per windowMs
+    max: 1000, // limit each IP to 5 requests per windowMs
     message: {
         success: false,
         message: 'Too many login attempts, please try again later.'
@@ -114,7 +114,7 @@ const loginRateLimit = rateLimit({
 // Rate limiting for admin operations
 const adminRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 1000, // limit each IP to 100 requests per windowMs
     message: {
         success: false,
         message: 'Too many requests, please try again later.'

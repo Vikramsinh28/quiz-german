@@ -115,19 +115,7 @@ class AuthController {
 
             res.json({
                 success: true,
-                data: {
-                    driver: {
-                        id: driver.id,
-                        firebase_uid: driver.firebase_uid,
-                        phone_number: driver.phone_number,
-                        language: driver.language,
-                        total_quizzes: driver.total_quizzes,
-                        total_correct: driver.total_correct,
-                        streak: driver.streak,
-                        accuracy: driver.calculateAccuracy(),
-                        created_at: driver.created_at
-                    }
-                }
+                data: driver.getProfileData()
             });
         } catch (error) {
             console.error('❌ Get Profile Error:', error);
