@@ -4,9 +4,9 @@ module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.createTable('drivers', {
             id: {
-                type: Sequelize.UUID,
-                defaultValue: Sequelize.UUIDV4,
-                primaryKey: true
+                type: Sequelize.BIGINT,
+                primaryKey: true,
+                autoIncrement: true
             },
             device_token: {
                 type: Sequelize.TEXT,

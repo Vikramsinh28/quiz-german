@@ -252,6 +252,293 @@ class QuizService {
             }
         };
     }
+
+    /**
+     * Get driver by Firebase UID
+     */
+    static async getDriverByFirebaseUid(firebaseUid) {
+        return await Driver.findOne({
+            where: {
+                firebase_uid: firebaseUid
+            }
+        });
+    }
+
+    /**
+     * Get admin quiz answers and statistics
+     */
+    static async getAdminQuizAnswers(options = {}) {
+        const {
+            date,
+            driver_id,
+            limit = 50,
+            offset = 0
+        } = options;
+
+        const whereClause = {};
+        if (date) {
+            whereClause.quiz_date = date;
+        }
+        if (driver_id) {
+            whereClause.driver_id = driver_id;
+        }
+
+        const sessions = await QuizSession.findAndCountAll({
+            where: whereClause,
+            include: [{
+                model: Driver,
+                as: 'driver',
+                attributes: ['id', 'name', 'phone_number', 'firebase_uid']
+            }],
+            order: [
+                ['created_at', 'DESC']
+            ],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+
+        // Get answers for each session
+        const sessionsWithAnswers = await Promise.all(
+            sessions.rows.map(async (session) => {
+                const responses = await QuizResponse.findAll({
+                    where: {
+                        quiz_session_id: session.id
+                    },
+                    include: [{
+                        model: Question,
+                        as: 'question',
+                        attributes: ['id', 'question_text', 'correct_option', 'explanation']
+                    }],
+                    order: [
+                        ['answered_at', 'ASC']
+                    ]
+                });
+
+                const answers = responses.map(response => ({
+                    question_id: response.question_id,
+                    question_text: response.question.question_text,
+                    selected_option: response.selected_option,
+                    correct_option: response.question.correct_option,
+                    correct: response.correct,
+                    explanation: response.question.explanation,
+                    answered_at: response.answered_at
+                }));
+
+                return {
+                    id: session.id,
+                    driver_id: session.driver_id,
+                    driver_name: session.driver ? session.driver.name : 'Unknown',
+                    driver_phone: session.driver ? session.driver.phone_number : null,
+                    quiz_date: session.quiz_date,
+                    total_questions: session.total_questions,
+                    total_correct: session.total_correct,
+                    score: session.calculateScore(),
+                    completed: session.completed,
+                    created_at: session.created_at,
+                    answers: answers
+                };
+            })
+        );
+
+        // Calculate statistics
+        const totalSessions = sessions.count;
+        const uniqueDrivers = new Set(sessions.rows.map(s => s.driver_id)).size;
+        const averageScore = sessions.rows.length > 0 ?
+            sessions.rows.reduce((sum, s) => sum + s.calculateScore(), 0) / sessions.rows.length :
+            0;
+        const completedSessions = sessions.rows.filter(s => s.completed).length;
+        const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
+
+        // Daily stats
+        const dailyStats = {};
+        sessions.rows.forEach(session => {
+            const date = session.quiz_date;
+            if (!dailyStats[date]) {
+                dailyStats[date] = {
+                    date: date,
+                    sessions_count: 0,
+                    average_score: 0,
+                    total_score: 0
+                };
+            }
+            dailyStats[date].sessions_count++;
+            dailyStats[date].total_score += session.calculateScore();
+        });
+
+        const dailyStatsArray = Object.values(dailyStats).map(stat => ({
+            ...stat,
+            average_score: stat.sessions_count > 0 ? stat.total_score / stat.sessions_count : 0
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        return {
+            sessions: sessionsWithAnswers,
+            statistics: {
+                total_sessions: totalSessions,
+                total_drivers: uniqueDrivers,
+                average_score: Math.round(averageScore * 100) / 100,
+                completion_rate: Math.round(completionRate * 100) / 100,
+                daily_stats: dailyStatsArray
+            },
+            total: totalSessions,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        };
+    }
+
+    /**
+     * Get comprehensive quiz statistics for admin
+     */
+    static async getAdminQuizStatistics(options = {}) {
+        const {
+            start_date,
+            end_date
+        } = options;
+
+        const whereClause = {};
+        if (start_date && end_date) {
+            whereClause.quiz_date = {
+                [require('sequelize').Op.between]: [start_date, end_date]
+            };
+        } else if (start_date) {
+            whereClause.quiz_date = {
+                [require('sequelize').Op.gte]: start_date
+            };
+        } else if (end_date) {
+            whereClause.quiz_date = {
+                [require('sequelize').Op.lte]: end_date
+            };
+        }
+
+        // Get all sessions in the date range
+        const sessions = await QuizSession.findAll({
+            where: whereClause,
+            include: [{
+                model: Driver,
+                as: 'driver',
+                attributes: ['id', 'name', 'phone_number']
+            }],
+            order: [
+                ['quiz_date', 'ASC']
+            ]
+        });
+
+        // Calculate overview statistics
+        const totalSessions = sessions.length;
+        const uniqueDrivers = new Set(sessions.map(s => s.driver_id)).size;
+        const averageScore = sessions.length > 0 ?
+            sessions.reduce((sum, s) => sum + s.calculateScore(), 0) / sessions.length :
+            0;
+        const completedSessions = sessions.filter(s => s.completed).length;
+        const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
+
+        // Daily statistics
+        const dailyStatsMap = {};
+        sessions.forEach(session => {
+            const date = session.quiz_date;
+            if (!dailyStatsMap[date]) {
+                dailyStatsMap[date] = {
+                    date: date,
+                    sessions_count: 0,
+                    unique_drivers: new Set(),
+                    total_score: 0,
+                    completed_count: 0
+                };
+            }
+            dailyStatsMap[date].sessions_count++;
+            dailyStatsMap[date].unique_drivers.add(session.driver_id);
+            dailyStatsMap[date].total_score += session.calculateScore();
+            if (session.completed) {
+                dailyStatsMap[date].completed_count++;
+            }
+        });
+
+        const dailyStats = Object.values(dailyStatsMap).map(stat => ({
+            date: stat.date,
+            sessions_count: stat.sessions_count,
+            unique_drivers: stat.unique_drivers.size,
+            average_score: stat.sessions_count > 0 ? Math.round((stat.total_score / stat.sessions_count) * 100) / 100 : 0,
+            completion_rate: stat.sessions_count > 0 ? Math.round((stat.completed_count / stat.sessions_count) * 100) / 100 : 0
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // Top performers
+        const driverStats = {};
+        sessions.forEach(session => {
+            const driverId = session.driver_id;
+            if (!driverStats[driverId]) {
+                driverStats[driverId] = {
+                    driver_id: driverId,
+                    driver_name: session.driver ? session.driver.name : 'Unknown',
+                    total_sessions: 0,
+                    total_score: 0,
+                    completed_sessions: 0
+                };
+            }
+            driverStats[driverId].total_sessions++;
+            driverStats[driverId].total_score += session.calculateScore();
+            if (session.completed) {
+                driverStats[driverId].completed_sessions++;
+            }
+        });
+
+        const topPerformers = Object.values(driverStats)
+            .map(driver => ({
+                ...driver,
+                average_score: driver.total_sessions > 0 ? Math.round((driver.total_score / driver.total_sessions) * 100) / 100 : 0
+            }))
+            .sort((a, b) => b.average_score - a.average_score)
+            .slice(0, 10);
+
+        // Question analytics
+        const questionStats = {};
+        const responses = await QuizResponse.findAll({
+            where: {
+                quiz_session_id: {
+                    [require('sequelize').Op.in]: sessions.map(s => s.id)
+                }
+            },
+            include: [{
+                model: Question,
+                as: 'question',
+                attributes: ['id', 'question_text']
+            }]
+        });
+
+        responses.forEach(response => {
+            const questionId = response.question_id;
+            if (!questionStats[questionId]) {
+                questionStats[questionId] = {
+                    question_id: questionId,
+                    question_text: response.question.question_text,
+                    total_attempts: 0,
+                    correct_attempts: 0
+                };
+            }
+            questionStats[questionId].total_attempts++;
+            if (response.correct) {
+                questionStats[questionId].correct_attempts++;
+            }
+        });
+
+        const questionAnalytics = Object.values(questionStats)
+            .map(question => ({
+                ...question,
+                accuracy_rate: question.total_attempts > 0 ?
+                    Math.round((question.correct_attempts / question.total_attempts) * 10000) / 100 : 0
+            }))
+            .sort((a, b) => b.accuracy_rate - a.accuracy_rate);
+
+        return {
+            overview: {
+                total_sessions: totalSessions,
+                total_drivers: uniqueDrivers,
+                average_score: Math.round(averageScore * 100) / 100,
+                completion_rate: Math.round(completionRate * 100) / 100
+            },
+            daily_stats: dailyStats,
+            top_performers: topPerformers,
+            question_analytics: questionAnalytics
+        };
+    }
 }
 
 module.exports = QuizService;

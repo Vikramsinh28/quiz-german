@@ -9,7 +9,7 @@ module.exports = {
                 autoIncrement: true
             },
             driver_id: {
-                type: Sequelize.UUID,
+                type: Sequelize.BIGINT,
                 allowNull: false,
                 references: {
                     model: 'drivers',

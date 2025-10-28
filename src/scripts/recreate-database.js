@@ -134,10 +134,8 @@ async function recreateDatabase() {
                 driver_id BIGINT NOT NULL,
                 quiz_date DATE NOT NULL,
                 completed BOOLEAN DEFAULT false,
-                score INTEGER DEFAULT 0,
                 total_questions INTEGER DEFAULT 0,
-                correct_answers INTEGER DEFAULT 0,
-                time_taken INTEGER DEFAULT 0,
+                total_correct INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (driver_id) REFERENCES drivers(id)

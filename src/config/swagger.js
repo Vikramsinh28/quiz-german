@@ -25,6 +25,27 @@ const options = {
                 description: 'Production server'
             }
         ],
+        tags: [{
+                name: 'Authentication',
+                description: 'Authentication and authorization endpoints'
+            },
+            {
+                name: 'Drivers',
+                description: 'Driver management and quiz-related endpoints'
+            },
+            {
+                name: 'Admin Management',
+                description: 'Admin user management and system administration'
+            },
+            {
+                name: 'Questions',
+                description: 'Question management and CRUD operations'
+            },
+            {
+                name: 'Quotes',
+                description: 'Daily quotes management and scheduling'
+            }
+        ],
         components: {
             securitySchemes: {
                 bearerAuth: {
@@ -597,10 +618,224 @@ const options = {
                             type: 'integer',
                             example: 4
                         },
+                        score: {
+                            type: 'number',
+                            format: 'float',
+                            example: 80.0
+                        },
                         created_at: {
                             type: 'string',
                             format: 'date-time',
                             example: '2024-01-01T00:00:00.000Z'
+                        }
+                    }
+                },
+                QuizQuestion: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        question_text: {
+                            type: 'string',
+                            example: 'What is the speed limit in school zones?'
+                        },
+                        options: {
+                            type: 'array',
+                            items: {
+                                type: 'string'
+                            },
+                            example: ['20 km/h', '30 km/h', '40 km/h', '50 km/h']
+                        },
+                        topic: {
+                            type: 'string',
+                            example: 'Traffic Rules'
+                        }
+                    }
+                },
+                QuizAnswer: {
+                    type: 'object',
+                    properties: {
+                        question_id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        question_text: {
+                            type: 'string',
+                            example: 'What is the speed limit in school zones?'
+                        },
+                        selected_option: {
+                            type: 'integer',
+                            example: 0
+                        },
+                        correct_option: {
+                            type: 'integer',
+                            example: 0
+                        },
+                        correct: {
+                            type: 'boolean',
+                            example: true
+                        },
+                        explanation: {
+                            type: 'string',
+                            example: 'School zones typically have a speed limit of 20 km/h for safety.'
+                        },
+                        answered_at: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2024-01-01T00:00:00.000Z'
+                        }
+                    }
+                },
+                QuizSessionWithAnswers: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        driver_id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        driver_name: {
+                            type: 'string',
+                            example: 'John Doe'
+                        },
+                        driver_phone: {
+                            type: 'string',
+                            example: '+1234567890'
+                        },
+                        quiz_date: {
+                            type: 'string',
+                            format: 'date',
+                            example: '2024-01-01'
+                        },
+                        total_questions: {
+                            type: 'integer',
+                            example: 5
+                        },
+                        total_correct: {
+                            type: 'integer',
+                            example: 4
+                        },
+                        score: {
+                            type: 'number',
+                            format: 'float',
+                            example: 80.0
+                        },
+                        completed: {
+                            type: 'boolean',
+                            example: true
+                        },
+                        created_at: {
+                            type: 'string',
+                            format: 'date-time',
+                            example: '2024-01-01T00:00:00.000Z'
+                        },
+                        answers: {
+                            type: 'array',
+                            items: {
+                                $ref: '#/components/schemas/QuizAnswer'
+                            }
+                        }
+                    }
+                },
+                QuizStatistics: {
+                    type: 'object',
+                    properties: {
+                        total_sessions: {
+                            type: 'integer',
+                            example: 150
+                        },
+                        total_drivers: {
+                            type: 'integer',
+                            example: 75
+                        },
+                        average_score: {
+                            type: 'number',
+                            format: 'float',
+                            example: 78.5
+                        },
+                        completion_rate: {
+                            type: 'number',
+                            format: 'float',
+                            example: 85.2
+                        },
+                        daily_stats: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    date: {
+                                        type: 'string',
+                                        format: 'date',
+                                        example: '2024-01-01'
+                                    },
+                                    sessions_count: {
+                                        type: 'integer',
+                                        example: 25
+                                    },
+                                    average_score: {
+                                        type: 'number',
+                                        format: 'float',
+                                        example: 82.3
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                TopPerformer: {
+                    type: 'object',
+                    properties: {
+                        driver_id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        driver_name: {
+                            type: 'string',
+                            example: 'John Doe'
+                        },
+                        total_sessions: {
+                            type: 'integer',
+                            example: 30
+                        },
+                        average_score: {
+                            type: 'number',
+                            format: 'float',
+                            example: 92.5
+                        },
+                        streak: {
+                            type: 'integer',
+                            example: 15
+                        }
+                    }
+                },
+                QuestionAnalytics: {
+                    type: 'object',
+                    properties: {
+                        question_id: {
+                            type: 'integer',
+                            example: 1
+                        },
+                        question_text: {
+                            type: 'string',
+                            example: 'What is the speed limit in school zones?'
+                        },
+                        total_attempts: {
+                            type: 'integer',
+                            example: 150
+                        },
+                        correct_attempts: {
+                            type: 'integer',
+                            example: 120
+                        },
+                        accuracy_rate: {
+                            type: 'number',
+                            format: 'float',
+                            example: 80.0
                         }
                     }
                 }

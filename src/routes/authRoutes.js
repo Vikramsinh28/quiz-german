@@ -1,6 +1,7 @@
 const express = require('express');
 const AuthController = require('../controllers/AuthController');
 const DriverController = require('../controllers/DriverController');
+const QuizController = require('../controllers/QuizController');
 const {
     verifyFirebaseToken
 } = require('../middlewares/firebaseAuth');
@@ -18,7 +19,7 @@ router.use(languageMiddleware);
  *   get:
  *     summary: Get authentication status
  *     description: Check if authentication is working
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     responses:
  *       200:
  *         description: Authentication status
@@ -61,7 +62,7 @@ router.get('/status', (req, res) => {
  *   get:
  *     summary: Test authentication endpoint
  *     description: Simple test endpoint for authentication
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     responses:
  *       200:
  *         description: Test successful
@@ -80,7 +81,7 @@ router.get('/test', (req, res) => {
  *   get:
  *     summary: Test Firebase authentication
  *     description: Test Firebase token verification
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
  *     responses:
@@ -97,7 +98,7 @@ router.get('/firebase-test', verifyFirebaseToken, AuthController.testAuth);
  *   post:
  *     summary: Login driver with Firebase token
  *     description: Authenticate driver using Firebase ID token
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
  *     requestBody:
@@ -128,7 +129,7 @@ router.post('/login', verifyFirebaseToken, AuthController.loginDriver);
  *   get:
  *     summary: Get driver profile
  *     description: Get driver profile information
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
  *     responses:
@@ -147,7 +148,7 @@ router.get('/profile', verifyFirebaseToken, AuthController.getDriverProfile);
  *   put:
  *     summary: Update driver profile
  *     description: Update driver profile information (authenticated driver only)
- *     tags: [Authentication]
+ *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
  *     requestBody:
@@ -361,5 +362,216 @@ router.get('/profile', verifyFirebaseToken, AuthController.getDriverProfile);
  *         description: Driver not found
  */
 router.put('/profile', verifyFirebaseToken, DriverController.updateDriverProfile);
+
+/**
+ * @swagger
+ * /api/v1/auth/daily-quiz:
+ *   get:
+ *     summary: Get daily quiz for driver
+ *     description: Get today's quiz questions for authenticated driver
+ *     tags: [Drivers]
+ *     security:
+ *       - firebaseAuth: []
+ *     responses:
+ *       200:
+ *         description: Daily quiz retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/QuizQuestion'
+ *                     session_id:
+ *                       type: integer
+ *                       example: 1
+ *                     language:
+ *                       type: string
+ *                       example: "en"
+ *       400:
+ *         description: Quiz already completed today
+ *       404:
+ *         description: No questions available
+ */
+router.get('/daily-quiz', verifyFirebaseToken, QuizController.getDailyQuiz);
+
+/**
+ * @swagger
+ * /api/v1/auth/quiz/answer:
+ *   post:
+ *     summary: Submit quiz answer
+ *     description: Submit an answer to a quiz question (authenticated driver)
+ *     tags: [Drivers]
+ *     security:
+ *       - firebaseAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question_id, selected_option]
+ *             properties:
+ *               question_id:
+ *                 type: integer
+ *                 example: 1
+ *               selected_option:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 3
+ *                 example: 0
+ *     responses:
+ *       200:
+ *         description: Answer submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Answer submitted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     correct:
+ *                       type: boolean
+ *                       example: true
+ *                     correct_option:
+ *                       type: integer
+ *                       example: 0
+ *                     explanation:
+ *                       type: string
+ *                       example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                     session_stats:
+ *                       type: object
+ *                       properties:
+ *                         total_questions:
+ *                           type: integer
+ *                           example: 3
+ *                         total_correct:
+ *                           type: integer
+ *                           example: 2
+ *                         score:
+ *                           type: number
+ *                           format: float
+ *                           example: 66.67
+ *       404:
+ *         description: Quiz session or question not found
+ */
+router.post('/quiz/answer', verifyFirebaseToken, QuizController.submitDailyQuizAnswer);
+
+/**
+ * @swagger
+ * /api/v1/auth/quiz/complete:
+ *   post:
+ *     summary: Complete daily quiz
+ *     description: Mark today's quiz as completed (authenticated driver)
+ *     tags: [Drivers]
+ *     security:
+ *       - firebaseAuth: []
+ *     responses:
+ *       200:
+ *         description: Quiz completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Quiz completed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session_id:
+ *                       type: integer
+ *                       example: 1
+ *                     total_questions:
+ *                       type: integer
+ *                       example: 5
+ *                     total_correct:
+ *                       type: integer
+ *                       example: 4
+ *                     score:
+ *                       type: number
+ *                       format: float
+ *                       example: 80.0
+ *                     completed:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: Quiz session not found
+ */
+router.post('/quiz/complete', verifyFirebaseToken, QuizController.completeDailyQuiz);
+
+/**
+ * @swagger
+ * /api/v1/auth/quiz/history:
+ *   get:
+ *     summary: Get driver quiz history
+ *     description: Get quiz history for authenticated driver
+ *     tags: [Drivers]
+ *     security:
+ *       - firebaseAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of sessions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of sessions to skip
+ *     responses:
+ *       200:
+ *         description: Quiz history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessions:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/QuizSession'
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ */
+router.get('/quiz/history', verifyFirebaseToken, QuizController.getDriverQuizHistory);
 
 module.exports = router;

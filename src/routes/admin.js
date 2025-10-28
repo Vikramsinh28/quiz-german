@@ -3,6 +3,7 @@ const AdminController = require('../controllers/AdminController');
 const QuestionController = require('../controllers/QuestionController');
 const QuoteController = require('../controllers/QuoteController');
 const DriverController = require('../controllers/DriverController');
+const QuizController = require('../controllers/QuizController');
 const {
     authenticateToken,
     requireRole,
@@ -713,7 +714,7 @@ router.patch('/quotes/:id/schedule', authenticateToken, requireRole(['admin', 'e
  *   get:
  *     summary: Get all drivers (admin)
  *     description: Retrieve all drivers with filtering options
- *     tags: [Admin Management]
+ *     tags: [Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -753,7 +754,7 @@ router.get('/drivers', authenticateToken, requireRole(['admin', 'editor', 'viewe
  *   get:
  *     summary: Get top performing drivers
  *     description: Retrieve top performing drivers based on accuracy
- *     tags: [Admin Management]
+ *     tags: [Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -781,7 +782,7 @@ router.get('/drivers/top', authenticateToken, requireRole(['admin', 'editor', 'v
  *   get:
  *     summary: Get active drivers today
  *     description: Retrieve drivers who took a quiz today
- *     tags: [Admin Management]
+ *     tags: [Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -809,7 +810,7 @@ router.get('/drivers/active-today', authenticateToken, requireRole(['admin', 'ed
  *   get:
  *     summary: Get driver by ID (admin)
  *     description: Retrieve a specific driver with full details
- *     tags: [Admin Management]
+ *     tags: [Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -831,7 +832,7 @@ router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'v
  *   get:
  *     summary: Get driver statistics
  *     description: Retrieve detailed statistics for a specific driver
- *     tags: [Admin Management]
+ *     tags: [Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -846,5 +847,145 @@ router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'v
  *         description: Driver statistics retrieved successfully
  */
 router.get('/drivers/:id/stats', authenticateToken, requireRole(['admin', 'editor', 'viewer']), DriverController.getDriverStats);
+
+/**
+ * @swagger
+ * /api/v1/admin/quiz/answers:
+ *   get:
+ *     summary: Get all quiz answers and statistics
+ *     description: Get quiz answers and statistics for admin dashboard
+ *     tags: [Drivers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by specific date (YYYY-MM-DD)
+ *       - in: query
+ *         name: driver_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by specific driver ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           minimum: 1
+ *           maximum: 200
+ *         description: Number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of records to skip
+ *     responses:
+ *       200:
+ *         description: Quiz answers and statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessions:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/QuizSessionWithAnswers'
+ *                     statistics:
+ *                       $ref: '#/components/schemas/QuizStatistics'
+ *                     total:
+ *                       type: integer
+ *                       example: 150
+ *                     limit:
+ *                       type: integer
+ *                       example: 50
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ */
+router.get('/quiz/answers', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuizController.getAdminQuizAnswers);
+
+/**
+ * @swagger
+ * /api/v1/admin/quiz/statistics:
+ *   get:
+ *     summary: Get comprehensive quiz statistics
+ *     description: Get detailed quiz statistics for admin dashboard
+ *     tags: [Drivers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for statistics (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for statistics (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Quiz statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       $ref: '#/components/schemas/QuizStatistics'
+ *                     daily_stats:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                             format: date
+ *                             example: "2024-01-01"
+ *                           sessions_count:
+ *                             type: integer
+ *                             example: 25
+ *                           unique_drivers:
+ *                             type: integer
+ *                             example: 20
+ *                           average_score:
+ *                             type: number
+ *                             format: float
+ *                             example: 82.3
+ *                           completion_rate:
+ *                             type: number
+ *                             format: float
+ *                             example: 88.0
+ *                     top_performers:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/TopPerformer'
+ *                     question_analytics:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/QuestionAnalytics'
+ */
+router.get('/quiz/statistics', authenticateToken, requireRole(['admin', 'editor', 'viewer']), QuizController.getAdminQuizStatistics);
 
 module.exports = router;

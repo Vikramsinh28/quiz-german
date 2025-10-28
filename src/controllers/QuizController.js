@@ -290,6 +290,273 @@ class QuizController {
             next(error);
         }
     }
+
+    /**
+     * Get daily quiz for authenticated driver
+     */
+    static async getDailyQuiz(req, res, next) {
+        try {
+            const firebaseUid = req.firebaseUser.uid;
+            const language = req.userLanguage || 'en';
+
+            // Get driver by Firebase UID
+            const driver = await QuizService.getDriverByFirebaseUid(firebaseUid);
+            if (!driver) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            // Check if driver can take quiz today
+            const canTakeQuiz = await QuizService.canTakeQuizToday(driver.id);
+            if (!canTakeQuiz) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Quiz already completed today'
+                });
+            }
+
+            // Get or create today's session
+            let session = await QuizService.getTodaysSession(driver.id);
+            if (!session) {
+                session = await QuizService.createTodaysSession(driver.id);
+            }
+
+            // Get random questions
+            const questions = await QuestionService.getRandomQuestions(5, language);
+
+            if (questions.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No questions available'
+                });
+            }
+
+            // Format questions for client (without correct answers)
+            const formattedQuestions = questions.map(question => ({
+                id: question.id,
+                question_text: question.getQuestionText(language),
+                options: question.getOptions(language),
+                topic: question.topic
+            }));
+
+            res.json({
+                success: true,
+                data: {
+                    questions: formattedQuestions,
+                    session_id: session.id,
+                    language: language
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Submit daily quiz answer for authenticated driver
+     */
+    static async submitDailyQuizAnswer(req, res, next) {
+        try {
+            const firebaseUid = req.firebaseUser.uid;
+            const {
+                question_id,
+                selected_option
+            } = req.body;
+
+            if (!question_id || selected_option === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Question ID and selected option are required'
+                });
+            }
+
+            // Get driver by Firebase UID
+            const driver = await QuizService.getDriverByFirebaseUid(firebaseUid);
+            if (!driver) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            // Get today's session
+            const session = await QuizService.getTodaysSession(driver.id);
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No active quiz session found'
+                });
+            }
+
+            const result = await QuizService.submitAnswer(session.id, question_id, selected_option);
+
+            res.json({
+                success: true,
+                message: 'Answer submitted successfully',
+                data: result
+            });
+        } catch (error) {
+            if (error.message === 'Quiz session not found' || error.message === 'Question not found') {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            next(error);
+        }
+    }
+
+    /**
+     * Complete daily quiz for authenticated driver
+     */
+    static async completeDailyQuiz(req, res, next) {
+        try {
+            const firebaseUid = req.firebaseUser.uid;
+
+            // Get driver by Firebase UID
+            const driver = await QuizService.getDriverByFirebaseUid(firebaseUid);
+            if (!driver) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            // Get today's session
+            const session = await QuizService.getTodaysSession(driver.id);
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No active quiz session found'
+                });
+            }
+
+            const completedSession = await QuizService.completeQuiz(session.id);
+
+            res.json({
+                success: true,
+                message: 'Quiz completed successfully',
+                data: {
+                    session_id: completedSession.id,
+                    total_questions: completedSession.total_questions,
+                    total_correct: completedSession.total_correct,
+                    score: completedSession.calculateScore(),
+                    completed: completedSession.completed
+                }
+            });
+        } catch (error) {
+            if (error.message === 'Quiz session not found') {
+                return res.status(404).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            next(error);
+        }
+    }
+
+    /**
+     * Get driver quiz history for authenticated driver
+     */
+    static async getDriverQuizHistory(req, res, next) {
+        try {
+            const firebaseUid = req.firebaseUser.uid;
+            const {
+                limit = 20,
+                    offset = 0
+            } = req.query;
+
+            // Get driver by Firebase UID
+            const driver = await QuizService.getDriverByFirebaseUid(firebaseUid);
+            if (!driver) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            const history = await QuizService.getQuizHistory(driver.id, {
+                limit,
+                offset
+            });
+
+            const formattedHistory = history.rows.map(session => ({
+                id: session.id,
+                quiz_date: session.quiz_date,
+                total_questions: session.total_questions,
+                total_correct: session.total_correct,
+                score: session.calculateScore(),
+                completed: session.completed,
+                created_at: session.created_at
+            }));
+
+            res.json({
+                success: true,
+                data: {
+                    sessions: formattedHistory,
+                    total: history.count,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset)
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get admin quiz answers and statistics
+     */
+    static async getAdminQuizAnswers(req, res, next) {
+        try {
+            const {
+                date,
+                driver_id,
+                limit = 50,
+                offset = 0
+            } = req.query;
+
+            const answers = await QuizService.getAdminQuizAnswers({
+                date,
+                driver_id,
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            });
+
+            res.json({
+                success: true,
+                data: answers
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get comprehensive quiz statistics for admin
+     */
+    static async getAdminQuizStatistics(req, res, next) {
+        try {
+            const {
+                start_date,
+                end_date
+            } = req.query;
+
+            const statistics = await QuizService.getAdminQuizStatistics({
+                start_date,
+                end_date
+            });
+
+            res.json({
+                success: true,
+                data: statistics
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = QuizController;
