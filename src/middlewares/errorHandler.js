@@ -1,4 +1,6 @@
-const { sendLocalizedResponse } = require('../utils/responseMessages');
+const {
+    sendLocalizedResponse
+} = require('../utils/responseMessages');
 
 const errorHandler = (err, req, res, next) => {
     console.error('Error:', err);
@@ -46,6 +48,25 @@ const errorHandler = (err, req, res, next) => {
 
     if (err.name === 'TokenExpiredError') {
         return sendLocalizedResponse(res, 401, 'api.unauthorized', null, userLanguage);
+    }
+
+    // AWS Translate errors
+    if (err.message && err.message.includes('Translation')) {
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+            error: 'TRANSLATION_ERROR',
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    if (err.message && err.message.includes('AWS credentials')) {
+        return res.status(500).json({
+            success: false,
+            message: 'AWS credentials not configured. Please contact administrator.',
+            error: 'AWS_CREDENTIALS_ERROR',
+            timestamp: new Date().toISOString()
+        });
     }
 
     // Default error

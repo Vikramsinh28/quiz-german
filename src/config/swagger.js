@@ -44,6 +44,10 @@ const options = {
             {
                 name: 'Quotes',
                 description: 'Daily quotes management and scheduling'
+            },
+            {
+                name: 'Translation',
+                description: 'AWS Translate integration for text translation'
             }
         ],
         components: {

@@ -19,6 +19,7 @@ const questionRoutes = require('./routes/questions');
 const quizRoutes = require('./routes/quiz');
 const adminRoutes = require('./routes/admin');
 const quoteRoutes = require('./routes/quotes');
+const translateRoutes = require('./routes/translateRoute');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -135,6 +136,7 @@ app.use('/api/v1/questions', questionRoutes);
 app.use('/api/v1/quiz', quizRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/quotes', quoteRoutes);
+app.use('/api/v1/translate', translateRoutes);
 
 /**
  * @swagger
