@@ -17,13 +17,7 @@ router.use(languageMiddleware);
  *     tags: [Quotes]
  *     security: []
  *     parameters:
- *       - in: query
- *         name: lang
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for quote content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Today's quote retrieved successfully
@@ -75,13 +69,7 @@ router.get('/today', QuoteController.getTodaysQuote);
  *     tags: [Quotes]
  *     security: []
  *     parameters:
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for quote content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Random quote retrieved successfully
@@ -137,13 +125,7 @@ router.get('/random', QuoteController.getRandomQuote);
  *         schema:
  *           type: integer
  *         description: Quote ID
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for quote content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quote retrieved successfully
@@ -214,13 +196,7 @@ router.get('/:id', QuoteController.getQuoteById);
  *           default: 0
  *           minimum: 0
  *         description: Number of quotes to skip
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for quote content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quotes retrieved successfully

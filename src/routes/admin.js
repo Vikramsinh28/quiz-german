@@ -69,6 +69,8 @@ router.post('/logout', authenticateToken, AdminController.logout);
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Token is valid
@@ -101,6 +103,8 @@ router.post('/refresh', authenticateToken, AdminController.refreshToken);
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Profile retrieved successfully
@@ -182,6 +186,8 @@ router.patch('/change-password', authenticateToken, logAdminAction('CHANGE_PASSW
  *     tags: [Admin Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Dashboard statistics retrieved successfully
@@ -215,12 +221,7 @@ router.get('/dashboard', authenticateToken, requireRole(['admin', 'editor', 'vie
  *         schema:
  *           type: integer
  *         description: Filter analysis for specific driver
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
- *         description: Filter questions by language
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Comprehensive analysis retrieved successfully
@@ -313,6 +314,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['admin']), AdminContro
  *           type: boolean
  *           default: true
  *         description: Show only active questions
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Questions retrieved successfully
@@ -390,6 +392,7 @@ router.post('/questions', authenticateToken, requireRole(['admin', 'editor']), l
  *         schema:
  *           type: integer
  *         description: Question ID
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Question retrieved successfully
@@ -440,7 +443,7 @@ router.get('/questions/:id', authenticateToken, requireRole(['admin', 'editor', 
  *                 example: "Traffic Rules"
  *               language:
  *                 type: string
- *                 enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *                 enum: [en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha]
  *                 example: "en"
  *               is_active:
  *                 type: boolean
@@ -518,12 +521,7 @@ router.delete('/questions/:id', authenticateToken, requireRole(['admin', 'editor
  *           type: integer
  *           default: 0
  *         description: Number of quotes to skip
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
- *         description: Filter by language
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *       - in: query
  *         name: active_only
  *         schema:
@@ -614,6 +612,7 @@ router.post('/quotes', authenticateToken, requireRole(['admin', 'editor']), logA
  *         schema:
  *           type: integer
  *         description: Quote ID
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quote retrieved successfully
@@ -668,7 +667,7 @@ router.get('/quotes/:id', authenticateToken, requireRole(['admin', 'editor', 'vi
  *                 example: "Drive safely today and every day."
  *               language:
  *                 type: string
- *                 enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *                 enum: [en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha]
  *                 example: "en"
  *               scheduled_date:
  *                 type: string
@@ -782,12 +781,7 @@ router.patch('/quotes/:id/schedule', authenticateToken, requireRole(['admin', 'e
  *           type: integer
  *           default: 0
  *         description: Number of drivers to skip
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *         description: Filter by language
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *       - in: query
  *         name: active_today
  *         schema:
@@ -822,6 +816,7 @@ router.get('/drivers', authenticateToken, requireRole(['admin', 'editor', 'viewe
  *           type: integer
  *           default: 5
  *         description: Minimum number of quizzes required
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Top drivers retrieved successfully
@@ -850,6 +845,7 @@ router.get('/drivers/top', authenticateToken, requireRole(['admin', 'editor', 'v
  *           type: integer
  *           default: 0
  *         description: Number of drivers to skip
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Active drivers retrieved successfully
@@ -872,6 +868,7 @@ router.get('/drivers/active-today', authenticateToken, requireRole(['admin', 'ed
  *         schema:
  *           type: integer
  *         description: Driver ID
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Driver retrieved successfully
@@ -894,6 +891,7 @@ router.get('/drivers/:id', authenticateToken, requireRole(['admin', 'editor', 'v
  *         schema:
  *           type: integer
  *         description: Driver ID
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Driver statistics retrieved successfully
@@ -936,6 +934,7 @@ router.get('/drivers/:id/stats', authenticateToken, requireRole(['admin', 'edito
  *           default: 0
  *           minimum: 0
  *         description: Number of records to skip
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quiz answers and statistics retrieved successfully
@@ -990,6 +989,7 @@ router.get('/quiz/answers', authenticateToken, requireRole(['admin', 'editor', '
  *           type: string
  *           format: date
  *         description: End date for statistics (YYYY-MM-DD)
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quiz statistics retrieved successfully

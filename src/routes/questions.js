@@ -25,13 +25,7 @@ router.use(languageMiddleware);
  *           minimum: 1
  *           maximum: 20
  *         description: Number of random questions to return
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for question content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *       - in: query
  *         name: topic
  *         schema:
@@ -106,13 +100,7 @@ router.get('/random', QuestionController.getRandomQuestions);
  *         schema:
  *           type: integer
  *         description: Question ID
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for question content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Question retrieved successfully
@@ -201,13 +189,7 @@ router.get('/random', QuestionController.getRandomQuestions);
  *           default: 0
  *           minimum: 0
  *         description: Number of questions to skip
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, de]
- *           default: en
- *         description: Language for question content
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Questions retrieved successfully
@@ -308,7 +290,7 @@ router.get('/topics', QuestionController.getAllTopics);
  *         name: language
  *         schema:
  *           type: string
- *           enum: [en, de, fr, es, it, pt, ru, zh, ja, ko]
+ *           enum: [en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha]
  *           default: en
  *         description: Language for question
  *     responses:

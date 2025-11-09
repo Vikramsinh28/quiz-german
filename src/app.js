@@ -36,6 +36,10 @@ app.use(express.urlencoded({
 // Language middleware
 app.use(languageMiddleware);
 
+// Response translation middleware (for GET requests with language parameter)
+const translateResponseMiddleware = require('./middlewares/translateResponse');
+app.use(translateResponseMiddleware);
+
 // Request logging middleware
 app.use((req, res, next) => {
     // Filter out development-related requests from logs

@@ -20,6 +20,8 @@ router.use(languageMiddleware);
  *     summary: Get authentication status
  *     description: Check if authentication is working
  *     tags: [Drivers]
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Authentication status
@@ -63,6 +65,8 @@ router.get('/status', (req, res) => {
  *     summary: Test authentication endpoint
  *     description: Simple test endpoint for authentication
  *     tags: [Drivers]
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Test successful
@@ -84,6 +88,8 @@ router.get('/test', (req, res) => {
  *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Firebase authentication successful
@@ -113,7 +119,7 @@ router.get('/firebase-test', verifyFirebaseToken, AuthController.testAuth);
  *                 description: Firebase Cloud Messaging token
  *               language:
  *                 type: string
- *                 enum: [en, de]
+ *                 enum: [en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha]
  *                 default: en
  *     responses:
  *       200:
@@ -132,6 +138,8 @@ router.post('/login', verifyFirebaseToken, AuthController.loginDriver);
  *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Profile retrieved successfully
@@ -169,7 +177,7 @@ router.get('/profile', verifyFirebaseToken, AuthController.getDriverProfile);
  *                 example: "device_token_456"
  *               language:
  *                 type: string
- *                 enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
+ *                 enum: [en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha]
  *                 example: "en"
  *               name:
  *                 type: string
@@ -372,6 +380,8 @@ router.put('/profile', verifyFirebaseToken, DriverController.updateDriverProfile
  *     tags: [Drivers]
  *     security:
  *       - firebaseAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Daily quiz retrieved successfully
@@ -544,6 +554,7 @@ router.post('/quiz/complete', verifyFirebaseToken, QuizController.completeDailyQ
  *           default: 0
  *           minimum: 0
  *         description: Number of sessions to skip
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Quiz history retrieved successfully
@@ -599,13 +610,7 @@ router.get('/quiz/history', verifyFirebaseToken, QuizController.getDriverQuizHis
  *           default: 0
  *           minimum: 0
  *         description: Number of sessions to skip
- *       - in: query
- *         name: language
- *         schema:
- *           type: string
- *           enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
- *           default: en
- *         description: Language for question text and options
+ *       - $ref: '#/components/parameters/LanguageParameter'
  *     responses:
  *       200:
  *         description: Detailed quiz history retrieved successfully

@@ -65,6 +65,19 @@ const options = {
                     description: 'Firebase ID token for driver authentication'
                 }
             },
+            parameters: {
+                LanguageParameter: {
+                    name: 'lang',
+                    in: 'query',
+                    description: 'Target language code for automatic response translation. If provided, all text fields in the response will be translated to this language using AWS Translate. Supported languages: en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl, pl, tr, sv, da, fi, no, cs, ro, hu, bg, hr, sk, sl, et, lv, lt, mt, ga, cy, is, mk, sq, sr, th, vi, id, ms, tl, sw, af, zu, xh, yo, ig, ha. See /api/v1/translate/languages for full list.',
+                    required: false,
+                    schema: {
+                        type: 'string',
+                        example: 'es',
+                        enum: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'fi', 'no', 'cs', 'ro', 'hu', 'bg', 'hr', 'sk', 'sl', 'et', 'lv', 'lt', 'mt', 'ga', 'cy', 'is', 'mk', 'sq', 'sr', 'th', 'vi', 'id', 'ms', 'tl', 'sw', 'af', 'zu', 'xh', 'yo', 'ig', 'ha']
+                    }
+                }
+            },
             schemas: {
                 Error: {
                     type: 'object',
@@ -206,7 +219,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
-                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            enum: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'fi', 'no', 'cs', 'ro', 'hu', 'bg', 'hr', 'sk', 'sl', 'et', 'lv', 'lt', 'mt', 'ga', 'cy', 'is', 'mk', 'sq', 'sr', 'th', 'vi', 'id', 'ms', 'tl', 'sw', 'af', 'zu', 'xh', 'yo', 'ig', 'ha'],
                             example: 'en'
                         },
                         is_active: {
@@ -253,7 +266,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
-                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            enum: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'fi', 'no', 'cs', 'ro', 'hu', 'bg', 'hr', 'sk', 'sl', 'et', 'lv', 'lt', 'mt', 'ga', 'cy', 'is', 'mk', 'sq', 'sr', 'th', 'vi', 'id', 'ms', 'tl', 'sw', 'af', 'zu', 'xh', 'yo', 'ig', 'ha'],
                             example: 'en'
                         }
                     }
@@ -271,7 +284,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
-                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            enum: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'fi', 'no', 'cs', 'ro', 'hu', 'bg', 'hr', 'sk', 'sl', 'et', 'lv', 'lt', 'mt', 'ga', 'cy', 'is', 'mk', 'sq', 'sr', 'th', 'vi', 'id', 'ms', 'tl', 'sw', 'af', 'zu', 'xh', 'yo', 'ig', 'ha'],
                             example: 'en'
                         },
                         scheduled_date: {
@@ -300,7 +313,7 @@ const options = {
                         },
                         language: {
                             type: 'string',
-                            enum: ['en', 'de', 'fr', 'es', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                            enum: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'nl', 'pl', 'tr', 'sv', 'da', 'fi', 'no', 'cs', 'ro', 'hu', 'bg', 'hr', 'sk', 'sl', 'et', 'lv', 'lt', 'mt', 'ga', 'cy', 'is', 'mk', 'sq', 'sr', 'th', 'vi', 'id', 'ms', 'tl', 'sw', 'af', 'zu', 'xh', 'yo', 'ig', 'ha'],
                             example: 'en'
                         },
                         scheduled_date: {
