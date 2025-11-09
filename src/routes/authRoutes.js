@@ -574,4 +574,135 @@ router.post('/quiz/complete', verifyFirebaseToken, QuizController.completeDailyQ
  */
 router.get('/quiz/history', verifyFirebaseToken, QuizController.getDriverQuizHistory);
 
+/**
+ * @swagger
+ * /api/v1/auth/quiz/history/detailed:
+ *   get:
+ *     summary: Get detailed driver quiz history with questions and answers
+ *     description: Get complete quiz history including all questions and answers for authenticated driver
+ *     tags: [Drivers]
+ *     security:
+ *       - firebaseAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of sessions to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of sessions to skip
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
+ *           default: en
+ *         description: Language for question text and options
+ *     responses:
+ *       200:
+ *         description: Detailed quiz history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Detailed quiz history retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           session_id:
+ *                             type: integer
+ *                             example: 1
+ *                           quiz_date:
+ *                             type: string
+ *                             format: date
+ *                             example: "2024-01-15"
+ *                           total_questions:
+ *                             type: integer
+ *                             example: 5
+ *                           total_correct:
+ *                             type: integer
+ *                             example: 4
+ *                           score:
+ *                             type: number
+ *                             format: float
+ *                             example: 80.0
+ *                           completed:
+ *                             type: boolean
+ *                             example: true
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                           questions:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 question_id:
+ *                                   type: integer
+ *                                   example: 1
+ *                                 question_text:
+ *                                   type: string
+ *                                   example: "What is the speed limit in a school zone?"
+ *                                 options:
+ *                                   type: array
+ *                                   items:
+ *                                     type: string
+ *                                   example: ["20 km/h", "30 km/h", "50 km/h", "60 km/h"]
+ *                                 selected_option:
+ *                                   type: integer
+ *                                   example: 0
+ *                                 selected_option_text:
+ *                                   type: string
+ *                                   example: "20 km/h"
+ *                                 correct_option:
+ *                                   type: integer
+ *                                   example: 0
+ *                                 correct_option_text:
+ *                                   type: string
+ *                                   example: "20 km/h"
+ *                                 is_correct:
+ *                                   type: boolean
+ *                                   example: true
+ *                                 explanation:
+ *                                   type: string
+ *                                   example: "School zones typically have a speed limit of 20 km/h for safety."
+ *                                 topic:
+ *                                   type: string
+ *                                   example: "Speed Limits"
+ *                                 answered_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     offset:
+ *                       type: integer
+ *                       example: 0
+ *       404:
+ *         description: Driver not found
+ */
+router.get('/quiz/history/detailed', verifyFirebaseToken, QuizController.getDriverDetailedQuizHistory);
+
 module.exports = router;

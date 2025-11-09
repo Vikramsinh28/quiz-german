@@ -198,6 +198,104 @@ class QuizService {
     }
 
     /**
+     * Get detailed quiz history with questions and answers for a driver
+     */
+    static async getDetailedQuizHistory(driverId, options = {}) {
+        const {
+            limit = 20,
+                offset = 0,
+                language = 'en'
+        } = options;
+
+        // Get all completed quiz sessions
+        const sessions = await QuizSession.findAndCountAll({
+            where: {
+                driver_id: driverId,
+                completed: true
+            },
+            order: [
+                ['quiz_date', 'DESC']
+            ],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+
+        // Get detailed responses for each session
+        const detailedSessions = await Promise.all(
+            sessions.rows.map(async (session) => {
+                const responses = await QuizResponse.findAll({
+                    where: {
+                        quiz_session_id: session.id
+                    },
+                    include: [{
+                        model: Question,
+                        as: 'question'
+                    }],
+                    order: [
+                        ['answered_at', 'ASC']
+                    ]
+                });
+
+                // Format questions and answers
+                const questions = responses.map(response => {
+                    const question = response.question;
+                    if (!question) {
+                        return {
+                            question_id: response.question_id,
+                            question_text: null,
+                            options: [],
+                            selected_option: response.selected_option,
+                            selected_option_text: null,
+                            correct_option: null,
+                            correct_option_text: null,
+                            is_correct: response.correct,
+                            explanation: null,
+                            topic: null,
+                            answered_at: response.answered_at
+                        };
+                    }
+
+                    const options = question.getOptions ? question.getOptions() : (question.options || []);
+                    const questionText = question.getQuestionText ? question.getQuestionText() : question.question_text;
+                    const explanation = question.getExplanation ? question.getExplanation() : question.explanation;
+
+                    return {
+                        question_id: response.question_id,
+                        question_text: questionText,
+                        options: options,
+                        selected_option: response.selected_option,
+                        selected_option_text: options[response.selected_option] || null,
+                        correct_option: question.correct_option,
+                        correct_option_text: options[question.correct_option] || null,
+                        is_correct: response.correct,
+                        explanation: explanation,
+                        topic: question.topic || null,
+                        answered_at: response.answered_at
+                    };
+                });
+
+                return {
+                    session_id: session.id,
+                    quiz_date: session.quiz_date,
+                    total_questions: session.total_questions,
+                    total_correct: session.total_correct,
+                    score: session.calculateScore(),
+                    completed: session.completed,
+                    created_at: session.created_at,
+                    questions: questions
+                };
+            })
+        );
+
+        return {
+            sessions: detailedSessions,
+            total: sessions.count,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        };
+    }
+
+    /**
      * Check if driver can take quiz today
      */
     static async canTakeQuizToday(driverId) {

@@ -507,6 +507,46 @@ class QuizController {
     }
 
     /**
+     * Get detailed driver quiz history with questions and answers for authenticated driver
+     */
+    static async getDriverDetailedQuizHistory(req, res, next) {
+        try {
+            const firebaseUid = req.firebaseUser.uid;
+            const {
+                limit = 20,
+                offset = 0,
+                language
+            } = req.query;
+
+            // Get driver by Firebase UID
+            const driver = await QuizService.getDriverByFirebaseUid(firebaseUid);
+            if (!driver) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Driver not found'
+                });
+            }
+
+            // Use driver's language or provided language or default to 'en'
+            const quizLanguage = language || driver.language || 'en';
+
+            const detailedHistory = await QuizService.getDetailedQuizHistory(driver.id, {
+                limit,
+                offset,
+                language: quizLanguage
+            });
+
+            res.json({
+                success: true,
+                message: 'Detailed quiz history retrieved successfully',
+                data: detailedHistory
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Get admin quiz answers and statistics
      */
     static async getAdminQuizAnswers(req, res, next) {

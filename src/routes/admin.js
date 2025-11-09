@@ -190,6 +190,58 @@ router.get('/dashboard', authenticateToken, requireRole(['admin', 'editor', 'vie
 
 /**
  * @swagger
+ * /api/v1/admin/analysis:
+ *   get:
+ *     summary: Get comprehensive analysis with detailed insights
+ *     description: Retrieve comprehensive analysis including performance metrics, trends, driver analysis, question analysis, engagement metrics, time patterns, insights, and actionable recommendations
+ *     tags: [Admin Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for analysis (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for analysis (YYYY-MM-DD)
+ *       - in: query
+ *         name: driver_id
+ *         schema:
+ *           type: integer
+ *         description: Filter analysis for specific driver
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           enum: [en, fr, es, de, it, pt, ru, zh, ja, ko]
+ *         description: Filter questions by language
+ *     responses:
+ *       200:
+ *         description: Comprehensive analysis retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Comprehensive analysis retrieved successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/ComprehensiveAnalysis'
+ */
+router.get('/analysis', authenticateToken, requireRole(['admin', 'editor', 'viewer']), AdminController.getComprehensiveAnalysis);
+
+/**
+ * @swagger
  * /api/v1/admin/audit-logs:
  *   get:
  *     summary: Get audit logs

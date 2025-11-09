@@ -262,6 +262,36 @@ class AdminController {
     }
 
     /**
+     * Get comprehensive analysis
+     */
+    static async getComprehensiveAnalysis(req, res, next) {
+        try {
+            const {
+                start_date,
+                end_date,
+                driver_id,
+                language
+            } = req.query;
+
+            const AnalysisService = require('../services/AnalysisService');
+            const analysis = await AnalysisService.getComprehensiveAnalysis({
+                start_date,
+                end_date,
+                driver_id: driver_id ? parseInt(driver_id) : null,
+                language
+            });
+
+            res.json({
+                success: true,
+                message: 'Comprehensive analysis retrieved successfully',
+                data: analysis
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Get audit logs
      */
     static async getAuditLogs(req, res, next) {
