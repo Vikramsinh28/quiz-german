@@ -179,23 +179,109 @@ module.exports = (sequelize, DataTypes) => {
 
     // Instance methods
     Driver.prototype.calculateAccuracy = function () {
+        // Note: This is a simplified accuracy calculation
+        // For accurate percentage, we need total_questions which isn't stored in Driver model
+        // The actual accuracy should be calculated from QuizSession data
+        // This method returns average correct answers per quiz (not a true percentage)
+        // Use DriverService.getDriverStats() for accurate percentage calculation
         if (this.total_quizzes === 0) return 0;
+        // This calculates average correct per quiz, not a true accuracy percentage
+        // To get true accuracy, divide total_correct by total_questions from sessions
         return Math.round((this.total_correct / this.total_quizzes) * 100);
     };
 
+    /**
+     * Recalculate driver statistics from actual quiz sessions
+     * This ensures accuracy by recalculating from source data
+     */
+    Driver.prototype.recalculateStats = async function () {
+        const QuizSession = sequelize.models.QuizSession;
+
+        // Get all completed quiz sessions for this driver
+        const completedSessions = await QuizSession.findAll({
+            where: {
+                driver_id: this.id,
+                completed: true
+            },
+            order: [
+                ['quiz_date', 'ASC']
+            ]
+        });
+
+        // Recalculate total quizzes (count of completed sessions)
+        this.total_quizzes = completedSessions.length;
+
+        // Recalculate total correct (sum of all correct answers from all sessions)
+        this.total_correct = completedSessions.reduce((sum, session) => {
+            return sum + (session.total_correct || 0);
+        }, 0);
+
+        // Recalculate streak based on consecutive quiz dates
+        if (completedSessions.length === 0) {
+            this.streak = 0;
+            this.last_quiz_date = null;
+        } else {
+            // Get the most recent quiz date
+            const lastSession = completedSessions[completedSessions.length - 1];
+            this.last_quiz_date = lastSession.quiz_date;
+
+            // Calculate streak by checking consecutive days
+            let currentStreak = 1;
+            let previousDate = null;
+
+            // Go through sessions in reverse order (most recent first)
+            for (let i = completedSessions.length - 1; i >= 0; i--) {
+                const sessionDate = new Date(completedSessions[i].quiz_date);
+
+                if (previousDate === null) {
+                    // First (most recent) session
+                    previousDate = sessionDate;
+                    currentStreak = 1;
+                } else {
+                    // Calculate days difference
+                    const diffTime = previousDate - sessionDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays === 1) {
+                        // Consecutive day - increment streak
+                        currentStreak += 1;
+                        previousDate = sessionDate;
+                    } else if (diffDays === 0) {
+                        // Same day - don't change streak, but update previousDate
+                        previousDate = sessionDate;
+                    } else {
+                        // Gap found - stop counting streak
+                        break;
+                    }
+                }
+            }
+
+            this.streak = currentStreak;
+        }
+
+        return this.save();
+    };
+
     Driver.prototype.updateStreak = function (quizDate) {
-        const today = new Date();
+        const quizDateObj = new Date(quizDate);
         const lastQuiz = this.last_quiz_date ? new Date(this.last_quiz_date) : null;
 
         if (!lastQuiz) {
+            // First quiz ever
             this.streak = 1;
         } else {
-            const diffTime = today - lastQuiz;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Calculate difference in days between quiz dates
+            const diffTime = quizDateObj - lastQuiz;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays === 1) {
+            if (diffDays === 0) {
+                // Same day - don't change streak (shouldn't happen, but handle it)
+                // Keep current streak
+            } else if (diffDays === 1) {
+                // Consecutive day - increment streak
                 this.streak += 1;
-            } else if (diffDays > 1) {
+            } else {
+                // Gap of more than 1 day - reset streak to 1
                 this.streak = 1;
             }
         }

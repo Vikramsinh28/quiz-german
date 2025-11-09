@@ -124,14 +124,23 @@ class QuizService {
             throw new Error('Quiz session not found');
         }
 
+        // Don't update if already completed
+        if (session.completed) {
+            return session;
+        }
+
         session.completed = true;
         await session.save();
 
         // Update driver statistics
         const driver = session.driver;
-        driver.total_quizzes += 1;
-        driver.total_correct += session.total_correct;
-        await driver.updateStreak(session.quiz_date);
+        if (driver) {
+            driver.total_quizzes += 1;
+            driver.total_correct += session.total_correct;
+            await driver.updateStreak(session.quiz_date);
+            // Ensure driver is saved (updateStreak saves, but be explicit)
+            await driver.save();
+        }
 
         return session;
     }

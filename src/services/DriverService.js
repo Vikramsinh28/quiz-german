@@ -209,6 +209,50 @@ class DriverService {
     }
 
     /**
+     * Recalculate driver statistics from actual quiz sessions
+     * This fixes any inconsistencies in the driver table
+     */
+    static async recalculateDriverStats(driverId) {
+        const driver = await Driver.findByPk(driverId);
+        if (!driver) {
+            return null;
+        }
+
+        await driver.recalculateStats();
+        return driver;
+    }
+
+    /**
+     * Recalculate statistics for all drivers
+     * Useful for fixing data inconsistencies
+     */
+    static async recalculateAllDriverStats() {
+        const drivers = await Driver.findAll();
+        const results = [];
+
+        for (const driver of drivers) {
+            try {
+                await driver.recalculateStats();
+                results.push({
+                    driver_id: driver.id,
+                    status: 'success',
+                    total_quizzes: driver.total_quizzes,
+                    total_correct: driver.total_correct,
+                    streak: driver.streak
+                });
+            } catch (error) {
+                results.push({
+                    driver_id: driver.id,
+                    status: 'error',
+                    error: error.message
+                });
+            }
+        }
+
+        return results;
+    }
+
+    /**
      * Validate profile data
      */
     static validateProfileData(data) {

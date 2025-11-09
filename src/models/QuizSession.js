@@ -87,6 +87,11 @@ module.exports = (sequelize, DataTypes) => {
     };
 
     QuizSession.prototype.complete = async function () {
+        // Don't update if already completed
+        if (this.completed) {
+            return;
+        }
+
         this.completed = true;
         await this.save();
 
@@ -98,6 +103,8 @@ module.exports = (sequelize, DataTypes) => {
             driver.total_quizzes += 1;
             driver.total_correct += this.total_correct;
             await driver.updateStreak(this.quiz_date);
+            // Ensure driver is saved (updateStreak saves, but be explicit)
+            await driver.save();
         }
     };
 
