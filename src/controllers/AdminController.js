@@ -222,9 +222,12 @@ class AdminController {
                 });
             }
 
-            // Validate new password
+            // Validate new password (only validate password, not username)
             const validationErrors = AdminService.validateAdminData({
                 password: newPassword
+            }, {
+                requireUsername: false,
+                requirePassword: true
             });
             if (validationErrors.length > 0) {
                 return res.status(400).json({

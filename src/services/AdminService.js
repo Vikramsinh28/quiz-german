@@ -202,20 +202,41 @@ class AdminService {
 
     /**
      * Validate admin data
+     * @param {Object} data - Admin data to validate
+     * @param {Object} options - Validation options
+     * @param {boolean} options.requireUsername - Whether username is required (default: true)
+     * @param {boolean} options.requirePassword - Whether password is required (default: true)
      */
-    static validateAdminData(data) {
+    static validateAdminData(data, options = {}) {
         const errors = [];
+        const { requireUsername = true, requirePassword = true } = options;
 
-        if (!data.username) {
-            errors.push('Username is required');
-        } else if (data.username.length < 3) {
-            errors.push('Username must be at least 3 characters long');
+        // Validate username only if required
+        if (requireUsername) {
+            if (!data.username) {
+                errors.push('Username is required');
+            } else if (data.username.length < 3) {
+                errors.push('Username must be at least 3 characters long');
+            }
+        } else if (data.username !== undefined) {
+            // If username is provided but not required, still validate format
+            if (data.username.length < 3) {
+                errors.push('Username must be at least 3 characters long');
+            }
         }
 
-        if (!data.password) {
-            errors.push('Password is required');
-        } else if (data.password.length < 6) {
-            errors.push('Password must be at least 6 characters long');
+        // Validate password only if required
+        if (requirePassword) {
+            if (!data.password) {
+                errors.push('Password is required');
+            } else if (data.password.length < 6) {
+                errors.push('Password must be at least 6 characters long');
+            }
+        } else if (data.password !== undefined) {
+            // If password is provided but not required, still validate format
+            if (data.password.length < 6) {
+                errors.push('Password must be at least 6 characters long');
+            }
         }
 
         if (data.role && !['admin', 'editor', 'viewer'].includes(data.role)) {
