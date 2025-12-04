@@ -3,6 +3,7 @@ const QuestionService = require('../services/QuestionService');
 const {
     sendLocalizedResponse
 } = require('../utils/responseMessages');
+const { Driver, QuizSession } = require('../models');
 
 class QuizController {
     /**
@@ -155,17 +156,61 @@ class QuizController {
 
             const session = await QuizService.completeQuiz(sessionId);
 
-            res.json({
-                success: true,
-                message: 'Quiz completed successfully',
-                data: {
-                    session_id: session.id,
-                    total_questions: session.total_questions,
-                    total_correct: session.total_correct,
-                    score: session.calculateScore(),
-                    completed: session.completed
-                }
-            });
+            // Get driver and update profile statistics
+            const driver = await Driver.findByPk(session.driver_id);
+            
+            if (driver) {
+                // Calculate total questions from all completed sessions
+                const totalQuestions = await QuizSession.sum('total_questions', {
+                    where: {
+                        driver_id: driver.id,
+                        completed: true
+                    }
+                });
+
+                // Recalculate and update driver statistics
+                await driver.recalculateStats();
+                
+                // Reload driver to get updated stats
+                await driver.reload();
+
+                // Calculate accuracy from total questions and total correct
+                const accuracy = totalQuestions > 0 
+                    ? Math.round((driver.total_correct / totalQuestions) * 100) 
+                    : 0;
+
+                res.json({
+                    success: true,
+                    message: 'Quiz completed successfully',
+                    data: {
+                        session_id: session.id,
+                        total_questions: session.total_questions,
+                        total_correct: session.total_correct,
+                        score: session.calculateScore(),
+                        completed: session.completed,
+                        driver_profile: {
+                            total_quizzes: driver.total_quizzes,
+                            total_correct: driver.total_correct,
+                            total_questions: totalQuestions || 0,
+                            accuracy: accuracy,
+                            streak: driver.streak,
+                            last_quiz_date: driver.last_quiz_date
+                        }
+                    }
+                });
+            } else {
+                res.json({
+                    success: true,
+                    message: 'Quiz completed successfully',
+                    data: {
+                        session_id: session.id,
+                        total_questions: session.total_questions,
+                        total_correct: session.total_correct,
+                        score: session.calculateScore(),
+                        completed: session.completed
+                    }
+                });
+            }
         } catch (error) {
             if (error.message === 'Quiz session not found') {
                 return res.status(404).json({
@@ -434,6 +479,26 @@ class QuizController {
             }
 
             const completedSession = await QuizService.completeQuiz(session.id);
+
+            // Update driver profile with quiz statistics
+            // Calculate total questions from all completed sessions
+            const totalQuestions = await QuizSession.sum('total_questions', {
+                where: {
+                    driver_id: driver.id,
+                    completed: true
+                }
+            });
+
+            // Recalculate and update driver statistics
+            await driver.recalculateStats();
+            
+            // Reload driver to get updated stats
+            await driver.reload();
+
+            // Calculate accuracy from total questions and total correct
+            const accuracy = totalQuestions > 0 
+                ? Math.round((driver.total_correct / totalQuestions) * 100) 
+                : 0;
 
             res.json({
                 success: true,
