@@ -480,25 +480,9 @@ class QuizController {
 
             const completedSession = await QuizService.completeQuiz(session.id);
 
-            // Update driver profile with quiz statistics
-            // Calculate total questions from all completed sessions
-            const totalQuestions = await QuizSession.sum('total_questions', {
-                where: {
-                    driver_id: driver.id,
-                    completed: true
-                }
-            });
-
-            // Recalculate and update driver statistics
-            await driver.recalculateStats();
-            
-            // Reload driver to get updated stats
+            // Profile is automatically updated in QuizService.completeQuiz
+            // Reload driver to get updated stats if needed
             await driver.reload();
-
-            // Calculate accuracy from total questions and total correct
-            const accuracy = totalQuestions > 0 
-                ? Math.round((driver.total_correct / totalQuestions) * 100) 
-                : 0;
 
             res.json({
                 success: true,

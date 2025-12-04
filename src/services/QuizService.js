@@ -137,6 +137,7 @@ class QuizService {
         if (driver) {
             driver.total_quizzes += 1;
             driver.total_correct += session.total_correct;
+            driver.total_questions += session.total_questions;
             await driver.updateStreak(session.quiz_date);
             // Ensure driver is saved (updateStreak saves, but be explicit)
             await driver.save();

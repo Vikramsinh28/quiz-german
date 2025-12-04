@@ -139,6 +139,13 @@ module.exports = (sequelize, DataTypes) => {
                 min: 0
             }
         },
+        total_questions: {
+            type: DataTypes.BIGINT,
+            defaultValue: 0,
+            validate: {
+                min: 0
+            }
+        },
         streak: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
@@ -179,15 +186,9 @@ module.exports = (sequelize, DataTypes) => {
 
     // Instance methods
     Driver.prototype.calculateAccuracy = function () {
-        // Note: This is a simplified accuracy calculation
-        // For accurate percentage, we need total_questions which isn't stored in Driver model
-        // The actual accuracy should be calculated from QuizSession data
-        // This method returns average correct answers per quiz (not a true percentage)
-        // Use DriverService.getDriverStats() for accurate percentage calculation
-        if (this.total_quizzes === 0) return 0;
-        // This calculates average correct per quiz, not a true accuracy percentage
-        // To get true accuracy, divide total_correct by total_questions from sessions
-        return Math.round((this.total_correct / this.total_quizzes) * 100);
+        // Calculate accuracy as percentage: (total_correct / total_questions) * 100
+        if (this.total_questions === 0) return 0;
+        return Math.round((this.total_correct / this.total_questions) * 100);
     };
 
     /**
@@ -214,6 +215,11 @@ module.exports = (sequelize, DataTypes) => {
         // Recalculate total correct (sum of all correct answers from all sessions)
         this.total_correct = completedSessions.reduce((sum, session) => {
             return sum + (session.total_correct || 0);
+        }, 0);
+
+        // Recalculate total questions (sum of all questions from all sessions)
+        this.total_questions = completedSessions.reduce((sum, session) => {
+            return sum + (session.total_questions || 0);
         }, 0);
 
         // Recalculate streak based on consecutive quiz dates
@@ -348,6 +354,7 @@ module.exports = (sequelize, DataTypes) => {
             quiz_stats: {
                 total_quizzes: this.total_quizzes,
                 total_correct: this.total_correct,
+                total_questions: this.total_questions,
                 accuracy: this.calculateAccuracy(),
                 streak: this.streak,
                 last_quiz_date: this.last_quiz_date
@@ -362,6 +369,7 @@ module.exports = (sequelize, DataTypes) => {
             quiz_stats: {
                 total_quizzes: this.total_quizzes,
                 total_correct: this.total_correct,
+                total_questions: this.total_questions,
                 accuracy: this.calculateAccuracy(),
                 streak: this.streak
             }
