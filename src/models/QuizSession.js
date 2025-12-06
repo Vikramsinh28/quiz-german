@@ -95,16 +95,14 @@ module.exports = (sequelize, DataTypes) => {
         this.completed = true;
         await this.save();
 
-        // Update driver statistics
+        // Note: Driver statistics should be recalculated using recalculateStats()
+        // in the controller to ensure accuracy from source data.
+        // Only update streak here
         const Driver = sequelize.models.Driver;
         const driver = await Driver.findByPk(this.driver_id);
 
         if (driver) {
-            driver.total_quizzes += 1;
-            driver.total_correct += this.total_correct;
             await driver.updateStreak(this.quiz_date);
-            // Ensure driver is saved (updateStreak saves, but be explicit)
-            await driver.save();
         }
     };
 

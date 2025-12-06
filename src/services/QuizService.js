@@ -132,15 +132,12 @@ class QuizService {
         session.completed = true;
         await session.save();
 
-        // Update driver statistics
+        // Note: Driver statistics will be recalculated in the controller
+        // using recalculateStats() to ensure accuracy from source data
+        // Update only the streak here
         const driver = session.driver;
         if (driver) {
-            driver.total_quizzes += 1;
-            driver.total_correct += session.total_correct;
-            driver.total_questions += session.total_questions;
             await driver.updateStreak(session.quiz_date);
-            // Ensure driver is saved (updateStreak saves, but be explicit)
-            await driver.save();
         }
 
         return session;

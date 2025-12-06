@@ -191,7 +191,7 @@ class DriverService {
                 }
             },
             order: [
-                [require('sequelize').literal('(total_correct::float / total_quizzes)'), 'DESC'],
+                [require('sequelize').literal('CASE WHEN total_questions > 0 THEN (total_correct::float / total_questions::float) ELSE 0 END'), 'DESC'],
                 ['total_quizzes', 'DESC']
             ],
             limit: parseInt(limit)
@@ -202,6 +202,7 @@ class DriverService {
             language: driver.language,
             total_quizzes: driver.total_quizzes,
             total_correct: driver.total_correct,
+            total_questions: driver.total_questions,
             accuracy: driver.calculateAccuracy(),
             streak: driver.streak,
             last_quiz_date: driver.last_quiz_date

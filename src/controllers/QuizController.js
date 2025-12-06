@@ -160,24 +160,15 @@ class QuizController {
             const driver = await Driver.findByPk(session.driver_id);
             
             if (driver) {
-                // Calculate total questions from all completed sessions
-                const totalQuestions = await QuizSession.sum('total_questions', {
-                    where: {
-                        driver_id: driver.id,
-                        completed: true
-                    }
-                });
-
-                // Recalculate and update driver statistics
+                // Recalculate and update driver statistics from actual quiz sessions
+                // This is the single source of truth for driver stats
                 await driver.recalculateStats();
                 
                 // Reload driver to get updated stats
                 await driver.reload();
 
-                // Calculate accuracy from total questions and total correct
-                const accuracy = totalQuestions > 0 
-                    ? Math.round((driver.total_correct / totalQuestions) * 100) 
-                    : 0;
+                // Calculate accuracy using the driver's built-in method
+                const accuracy = driver.calculateAccuracy();
 
                 res.json({
                     success: true,
@@ -191,7 +182,7 @@ class QuizController {
                         driver_profile: {
                             total_quizzes: driver.total_quizzes,
                             total_correct: driver.total_correct,
-                            total_questions: totalQuestions || 0,
+                            total_questions: driver.total_questions,
                             accuracy: accuracy,
                             streak: driver.streak,
                             last_quiz_date: driver.last_quiz_date
@@ -480,8 +471,8 @@ class QuizController {
 
             const completedSession = await QuizService.completeQuiz(session.id);
 
-            // Profile is automatically updated in QuizService.completeQuiz
-            // Reload driver to get updated stats if needed
+            // Recalculate driver statistics to ensure accuracy
+            await driver.recalculateStats();
             await driver.reload();
 
             res.json({
@@ -492,7 +483,15 @@ class QuizController {
                     total_questions: completedSession.total_questions,
                     total_correct: completedSession.total_correct,
                     score: completedSession.calculateScore(),
-                    completed: completedSession.completed
+                    completed: completedSession.completed,
+                    driver_profile: {
+                        total_quizzes: driver.total_quizzes,
+                        total_correct: driver.total_correct,
+                        total_questions: driver.total_questions,
+                        accuracy: driver.calculateAccuracy(),
+                        streak: driver.streak,
+                        last_quiz_date: driver.last_quiz_date
+                    }
                 }
             });
         } catch (error) {
